@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hidráulica Ensenada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{font-family:'Inter','Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);min-height:100vh}
+        .glass-card{background:rgba(255,255,255,.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);transition:all .4s cubic-bezier(.4,0,.2,1)}
+        .glass-card:hover:not(.blocked):not(.panel-notif){transform:scale(1.003);border-color:rgba(255,255,255,.15);box-shadow:0 20px 40px -12px rgba(0,0,0,.5)}
+        .blocked{opacity:.35;pointer-events:none;filter:grayscale(.5)}
+        .status-bar-red{background:linear-gradient(90deg,#ef4444,#dc2626)}
+        .status-bar-green{background:linear-gradient(90deg,#22c55e,#16a34a)}
+        .status-bar-gray{background:linear-gradient(90deg,#64748b,#475569)}
+        .input-glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;transition:all .3s ease}
+        .input-glass:focus{outline:none;border-color:rgba(99,102,241,.6);box-shadow:0 0 0 3px rgba(99,102,241,.15);background:rgba(255,255,255,.08)}
+        .input-glass::placeholder{color:rgba(148,163,184,.6)}
+        .input-glass:disabled{opacity:.5;cursor:not-allowed;background:rgba(255,255,255,.02)}
+        .btn-primary{background:linear-gradient(135deg,#6366f1,#4f46e5);transition:all .3s cubic-bezier(.4,0,.2,1)}
+        .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 25px -5px rgba(99,102,241,.4)}
+        .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+        .btn-success{background:linear-gradient(135deg,#22c55e,#16a34a)}
+        .btn-success:hover:not(:disabled){box-shadow:0 10px 25px -5px rgba(34,197,94,.4);transform:translateY(-1px)}
+        .btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626)}
+        .btn-danger:hover:not(:disabled){box-shadow:0 10px 25px -5px rgba(239,68,68,.4);transform:translateY(-1px)}
+        .btn-warning{background:linear-gradient(135deg,#f59e0b,#d97706)}
+        .btn-warning:hover:not(:disabled){box-shadow:0 10px 25px -5px rgba(245,158,11,.4);transform:translateY(-1px)}
+        .progress-bar-fill{background:linear-gradient(90deg,#6366f1,#8b5cf6,#a78bfa);transition:width .8s cubic-bezier(.4,0,.2,1);border-radius:9999px;position:relative;overflow:hidden}
+        .progress-bar-fill::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:shimmer 2s infinite}
+        @keyframes shimmer{100%{left:100%}}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+        .blink-animation{animation:blink 1s ease-in-out infinite}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeIn .3s ease-out forwards}
+        .timestamp-badge{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25)}
+        .alert-banner{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3)}
+        .alert-banner-success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3)}
+        .tooltip-custom{visibility:hidden;opacity:0;transition:all .3s ease;position:absolute;bottom:100%;right:0;z-index:100;min-width:280px}
+        .tooltip-trigger:hover .tooltip-custom{visibility:visible;opacity:1}
+        .card-number{width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;font-size:.65rem}
+        select.input-glass option{background:#1e293b;color:#e2e8f0}
+        .sticky-footer{background:rgba(15,23,42,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.08)}
+        .radio-custom{appearance:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-radius:50%;background:transparent;cursor:pointer;transition:all .2s;position:relative}
+        .radio-custom:checked{border-color:#6366f1;background:#6366f1}
+        .radio-custom:checked::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;background:#fff}
+        .checkbox-custom{appearance:none;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-radius:5px;background:transparent;cursor:pointer;transition:all .2s;position:relative;flex-shrink:0}
+        .checkbox-custom:checked{border-color:#22c55e;background:#22c55e}
+        .checkbox-custom:checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:11px;font-weight:700}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
+        .header-logo{background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .orden-tab{transition:all .2s;cursor:pointer;border:1px solid rgba(255,255,255,.08)}
+        .orden-tab:hover{background:rgba(255,255,255,.08)}
+        .orden-tab.active{background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.4)}
+        .orden-tab .tab-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+        .modal-overlay{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+        .badge-role{font-size:.6rem;padding:1px 5px;border-radius:5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+        .etapa-box{transition:all .3s ease;position:relative}
+        .etapa-box.active::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid currentColor}
+        .etapa-box.current::before{content:'';position:absolute;inset:-1.5px;border-radius:6px;border:1.5px solid currentColor;opacity:.5;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:.5}50%{opacity:.2}}
+        #etapas-indicator .flex{justify-content:flex-end;padding-right:1rem}
+        .notif-green{border-left:3px solid #22c55e;color:#86efac}
+        .notif-red{border-left:3px solid #ef4444;color:#fca5a5}
+        .notif-amber{border-left:3px solid #f59e0b;color:#fcd34d}
+        .notif-indigo{border-left:3px solid #6366f1;color:#a5b4fc}
+        .notif-cyan{border-left:3px solid #06b6d4;color:#67e8f9}
+        /* Login screen */
+        .login-card{background:rgba(255,255,255,.07);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.1)}
+        #login-screen{transition:opacity .5s ease}
+        #app-screen{transition:opacity .5s ease}
+    </style>
+</head>
+<body class="text-slate-200">
+
+<!-- ============ PANTALLA DE LOGIN ============ -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
+    <div class="login-card rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/30">
+                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <h1 class="text-2xl font-bold header-logo">HIDRÁULICA ENSENADA</h1>
+            <p class="text-xs text-slate-500 mt-1">Sistema de Gestión de Órdenes</p>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Usuario</label>
+                <input type="text" id="login-user" class="input-glass w-full px-4 py-3 rounded-xl text-sm" placeholder="Ingrese su usuario..." autofocus>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Contraseña</label>
+                <input type="password" id="login-pass" class="input-glass w-full px-4 py-3 rounded-xl text-sm" placeholder="Ingrese su contraseña..." onkeydown="if(event.key==='Enter')intentarLogin()">
+            </div>
+            <div id="login-error" class="hidden p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium"></div>
+            <button onclick="intentarLogin()" class="btn-primary w-full py-3 rounded-xl text-white font-bold text-sm shadow-lg">
+                🔐 Ingresar al Sistema
+            </button>
+        </div>
+        <div class="mt-6 p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
+            <p class="text-[10px] text-slate-500 text-center">⚠️ Acceso solo para personal autorizado</p>
+        </div>
+    </div>
+</div>
+
+<!-- ============ PANTALLA DE LA APLICACIÓN ============ -->
+<div id="app-screen" class="pb-20" style="display:none">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-50 px-4 sm:px-6 py-3" style="background:rgba(15,23,42,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06)">
+    <div class="max-w-[1400px] mx-auto flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-bold header-logo">HIDRÁULICA ENSENADA</h1>
+                <p class="text-[10px] text-slate-500 font-medium tracking-wider uppercase">Sistema de Gestión de Órdenes</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <span id="user-badge" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border"></span>
+            <button onclick="abrirModalInstructivo()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition-all">📖 Instructivo</button>
+            <button id="btn-personal" onclick="abrirModalPersonal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition-all">👥 Personal</button>
+            <button onclick="exportarExcel()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 transition-all">📊 Excel</button>
+            <button onclick="crearNuevaOrden()" class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold btn-primary text-white shadow-lg">＋ Nueva Orden</button>
+            <button onclick="cerrarSesion()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25 transition-all">🚪 Salir</button>
+        </div>
+    </div>
+</header>
+
+<!-- ETAPAS + TABS -->
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3">
+    <div class="flex items-center justify-between flex-wrap gap-2 pb-2">
+        <div class="flex items-center gap-2 overflow-x-auto flex-1" id="ordenes-tabs" style="scrollbar-width:none"></div>
+        <div id="etapas-indicator" class="flex items-center gap-1.5" style="display:none">
+            <div id="etapa-1" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>1 INGRESO</span></div>
+            <div class="w-px h-3 bg-slate-700"></div>
+            <div id="etapa-2" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>2 OPERATIVA</span></div>
+            <div class="w-px h-3 bg-slate-700"></div>
+            <div id="etapa-3" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>3 ADMIN</span></div>
+            <div class="w-px h-3 bg-slate-700"></div>
+            <div id="etapa-4" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>4 ENTREGA</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENEDOR PRINCIPAL -->
+<main class="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
+    <div class="flex gap-4">
+        <div class="flex-1 min-w-0" id="orden-container">
+            <div class="flex items-center justify-center h-52 text-slate-600"><div class="text-center"><p class="text-4xl mb-2">🔧</p><p class="text-sm">Presione <strong class="text-indigo-400">"+ Nueva Orden"</strong> para comenzar</p></div></div>
+        </div>
+        <div class="w-80 flex-shrink-0 hidden lg:block" id="notif-panel-wrapper">
+            <div class="glass-card panel-notif rounded-2xl shadow-xl p-4 sticky top-20" style="max-height:calc(100vh - 110px);overflow-y:auto">
+                <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-700/50">
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    <span class="text-sm font-bold text-white">Notificaciones</span>
+                </div>
+                <div id="notificaciones-container"><p class="text-xs text-slate-500 italic">Seleccione una orden</p></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- CONEXIÓN INDICATOR -->
+<div id="connection-status" class="fixed top-16 right-4 z-50 px-3 py-1.5 rounded-lg text-[10px] font-bold hidden"></div>
+
+</div><!-- fin app-screen -->
+
+<!-- MODAL INSTRUCTIVO -->
+<div id="modal-instructivo" class="fixed inset-0 z-[100] modal-overlay" style="display:none">
+    <div class="flex items-center justify-center min-h-full p-4">
+        <div class="glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden" style="background:rgba(30,41,59,.97)">
+            <div class="p-4 border-b border-slate-700/50 flex items-center justify-between"><h2 class="text-base font-bold text-white">📖 Instructivo de Uso</h2><button onclick="cerrarModalInstructivo()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 text-sm">✕</button></div>
+            <div class="p-4 overflow-y-auto text-xs text-slate-300 space-y-3" style="max-height:calc(85vh - 60px)">
+                <div class="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20"><h3 class="font-bold text-indigo-400 mb-1">🚀 Inicio rápido</h3><p>1. Clic en <strong>+ Nueva Orden</strong>. 2. Complete <strong>Etapa 1: Ingreso</strong>.</p></div>
+                <div class="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20"><h3 class="font-bold text-blue-400 mb-1">🔧 Flujo</h3><p>Etapas secuenciales: <strong>Ingreso → Operativa → Administración → Entrega</strong>. Si se detiene, usar derivación.</p></div>
+                <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20"><h3 class="font-bold text-emerald-400 mb-1">👥 Personal</h3><p>Solo el <strong>Administrador</strong> puede gestionar personal y categorías.</p></div>
+                <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20"><h3 class="font-bold text-amber-400 mb-1">📊 Informes</h3><p><strong>Exportar Excel</strong> genera informe completo.</p></div>
+                <div class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20"><h3 class="font-bold text-purple-400 mb-1">🔄 Tiempo real</h3><p>Los datos se sincronizan automáticamente entre todos los usuarios conectados.</p></div>
+                <div class="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20"><h3 class="font-bold text-red-400 mb-1">🔐 Roles</h3><p><strong>Administrador</strong>: control total. <strong>Operador</strong>: carga datos pero no puede eliminar órdenes ni gestionar personal/categorías.</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PERSONAL (solo admin) -->
+<div id="modal-personal" class="fixed inset-0 z-[100] modal-overlay" style="display:none">
+    <div class="flex items-center justify-center min-h-full p-4">
+        <div class="glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden" style="background:rgba(30,41,59,.97)">
+            <div class="p-4 border-b border-slate-700/50 flex items-center justify-between"><h2 class="text-base font-bold text-white">👥 Gestión de Personal y Categorías</h2><button onclick="cerrarModalPersonal()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 text-sm">✕</button></div>
+            <div class="p-4 space-y-3 overflow-y-auto" style="max-height:calc(85vh - 60px)">
+                <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 space-y-2">
+                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Categorías</h3>
+                    <div class="flex gap-2"><input type="text" id="new-categoria" class="input-glass flex-1 px-2.5 py-1.5 rounded-lg text-xs" placeholder="Nueva categoría..."><button onclick="agregarCategoria()" class="btn-primary px-3 py-1.5 rounded-lg text-white text-xs font-semibold">+</button></div>
+                    <div id="lista-categorias" class="space-y-1"></div>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 space-y-2">
+                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Agregar Persona</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <input type="text" id="new-person-name" class="input-glass px-2.5 py-1.5 rounded-lg text-xs" placeholder="Nombre y Apellido">
+                        <select id="new-person-role" class="input-glass px-2.5 py-1.5 rounded-lg text-xs"><option value="">-- Categoría --</option></select>
+                        <button onclick="agregarPersona()" class="btn-primary px-3 py-1.5 rounded-lg text-white text-xs font-semibold">+ Agregar</button>
+                    </div>
+                </div>
+                <div id="lista-personal" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- STICKY FOOTER -->
+<footer class="sticky-footer fixed bottom-0 left-0 right-0 z-50 px-4 sm:px-6 py-2">
+    <div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div class="flex-1 w-full sm:max-w-sm">
+            <div class="flex items-center justify-between mb-1"><span class="text-[10px] text-slate-500 font-medium" id="footer-orden-label">Sin orden activa</span><span id="progress-text" class="text-[10px] font-bold text-indigo-400">0%</span></div>
+            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden"><div id="progress-bar" class="progress-bar-fill h-full" style="width:0%"></div></div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-[10px] text-slate-600 hidden sm:block" id="footer-ordenes-count">0 órdenes</span>
+            <div class="relative tooltip-trigger">
+                <div id="status-badge" class="px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-slate-700/50 text-slate-500 border border-slate-600/30">[ SIN ORDEN ]</div>
+                <div id="status-tooltip" class="tooltip-custom mb-2 p-3 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl hidden">
+                    <p id="tooltip-motivo" class="text-xs text-slate-300"></p>
+                    <p id="tooltip-responsable" class="text-xs text-slate-400 mt-1"></p>
+                    <p id="tooltip-fecha" class="text-[10px] text-slate-500 mt-1"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+// ===================================================================
+//  FIREBASE - CONFIGURACIÓN
+//  ⚠️ REEMPLAZÁ ESTOS VALORES CON LOS DE TU PROYECTO FIREBASE
+// ===================================================================
+firebase.initializeApp({
+    apiKey: "AIzaSyDaAjyat9YHkh9ZtgtOjsJKkRcMPRWKPrQ",
+    authDomain: "hidraulica-ensenada.firebaseapp.com",
+    projectId: "hidraulica-ensenada",
+    storageBucket: "hidraulica-ensenada.firebasestorage.app",
+    messagingSenderId: "397788846334",
+    appId: "1:397788846334:web:c7e41597ff538fd6ebadaf"
+});
+const db = firebase.firestore();
+
+// ===================================================================
+//  SISTEMA DE USUARIOS Y ROLES
+// ===================================================================
+/*
+  USUARIOS DEL SISTEMA - Modificá esta lista con tus datos reales.
+  rol: "admin"    → Control total (crear, editar, eliminar, gestionar personal)
+  rol: "operador" → Solo puede cargar y modificar datos de órdenes
+*/
+const USUARIOS = [
+    { usuario: 'admin',     password: 'admin2024',   nombre: 'Administrador',   rol: 'admin' },
+    { usuario: 'recepcion', password: 'recep2024',   nombre: 'Recepción',       rol: 'operador' },
+    { usuario: 'taller',    password: 'taller2024',  nombre: 'Taller',          rol: 'operador' },
+    { usuario: 'oficina',   password: 'oficina2024', nombre: 'Oficina',         rol: 'operador' },
+    { usuario: 'entrega',   password: 'entrega2024', nombre: 'Entrega',         rol: 'operador' }
+];
+
+let currentUser = null;
+function esAdmin(){ return currentUser && currentUser.rol === 'admin' }
+
+function intentarLogin(){
+    const u=document.getElementById('login-user').value.trim().toLowerCase();
+    const p=document.getElementById('login-pass').value;
+    const found=USUARIOS.find(x=>x.usuario===u && x.password===p);
+    if(!found){document.getElementById('login-error').textContent='⚠️ Usuario o contraseña incorrectos';document.getElementById('login-error').classList.remove('hidden');return}
+    currentUser=found;
+    document.getElementById('login-error').classList.add('hidden');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-screen').style.display='block';
+    const ub=document.getElementById('user-badge');
+    if(esAdmin()){ub.textContent='🛡️ '+currentUser.nombre+' (Admin)';ub.className='px-2.5 py-1 rounded-lg text-[10px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/25'}
+    else{ub.textContent='👤 '+currentUser.nombre;ub.className='px-2.5 py-1 rounded-lg text-[10px] font-bold border bg-slate-500/15 text-slate-400 border-slate-500/25'}
+    if(!esAdmin())document.getElementById('btn-personal').style.display='none';
+    cargarDatos();
+}
+
+function cerrarSesion(){
+    if(!confirm('¿Cerrar sesión?'))return;
+    currentUser=null;activeOrdenId=null;
+    document.getElementById('app-screen').style.display='none';
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('login-user').value='';
+    document.getElementById('login-pass').value='';
+}
+
+// ===================================================================
+//  DATA
+// ===================================================================
+let categorias=['COMPRAS','VENTAS','ADMINISTRACION','GERENTE','MECANICOS','RECEPCION','TORNERO','ELECTRICISTA','ENCARGADO','LOGISTICA'];
+let personal=[
+    {id:1,nombre:'Sosa Nahuel',rol:'MECANICOS'},{id:2,nombre:'García Marcos',rol:'MECANICOS'},{id:3,nombre:'López Darío',rol:'MECANICOS'},
+    {id:4,nombre:'Esteban Pérez',rol:'COMPRAS'},{id:5,nombre:'Martín Torres',rol:'COMPRAS'},
+    {id:6,nombre:'Reinoso Rosana',rol:'ADMINISTRACION'},{id:7,nombre:'Vega Luciana',rol:'ADMINISTRACION'},
+    {id:8,nombre:'Campos Julia',rol:'RECEPCION'},{id:9,nombre:'Díaz Roberto',rol:'TORNERO'},
+    {id:10,nombre:'Acosta Fabián',rol:'ELECTRICISTA'},{id:11,nombre:'Peralta Hugo',rol:'ENCARGADO'},{id:12,nombre:'Bravo Sergio',rol:'LOGISTICA'}
+];
+let nextPersonId=13;let ordenes=[];let nextOrdenId=1;let activeOrdenId=null;
+
+// ===================================================================
+//  FIREBASE: GUARDAR, CARGAR, ESCUCHAR
+// ===================================================================
+function guardarDatos(){
+    db.collection('config').doc('categorias').set({data:categorias}).catch(e=>console.warn('Error cat:',e));
+    db.collection('config').doc('personal').set({data:personal,nextId:nextPersonId}).catch(e=>console.warn('Error per:',e));
+    db.collection('config').doc('ordenes').set({data:ordenes,nextId:nextOrdenId}).catch(e=>console.warn('Error ord:',e));
+    localStorage.setItem('mtr_categorias',JSON.stringify(categorias));
+    localStorage.setItem('mtr_personal',JSON.stringify(personal));
+    localStorage.setItem('mtr_ordenes',JSON.stringify(ordenes));
+}
+
+async function cargarDatos(){
+    try{
+        const[catDoc,perDoc,ordDoc]=await Promise.all([db.collection('config').doc('categorias').get(),db.collection('config').doc('personal').get(),db.collection('config').doc('ordenes').get()]);
+        if(catDoc.exists)categorias=catDoc.data().data;
+        if(perDoc.exists){personal=perDoc.data().data;nextPersonId=perDoc.data().nextId||13}
+        if(ordDoc.exists){ordenes=ordDoc.data().data;nextOrdenId=ordDoc.data().nextId||1}
+        mostrarConexion(true);
+    }catch(e){
+        console.warn('Offline, usando local');
+        categorias=JSON.parse(localStorage.getItem('mtr_categorias'))||categorias;
+        personal=JSON.parse(localStorage.getItem('mtr_personal'))||personal;
+        ordenes=JSON.parse(localStorage.getItem('mtr_ordenes'))||ordenes;
+        nextPersonId=personal.length?Math.max(...personal.map(p=>p.id))+1:1;
+        nextOrdenId=ordenes.length?Math.max(...ordenes.map(o=>o.id))+1:1;
+        mostrarConexion(false);
+    }
+    updateFooter();renderTabs();
+    if(ordenes.length){activeOrdenId=ordenes[ordenes.length-1].id;seleccionarOrden(activeOrdenId)}
+    escucharCambios();
+}
+
+function escucharCambios(){
+    db.collection('config').doc('ordenes').onSnapshot(doc=>{if(doc.exists){const d=doc.data();if(JSON.stringify(d.data)!==JSON.stringify(ordenes)){ordenes=d.data;nextOrdenId=d.nextId||nextOrdenId;renderTabs();if(activeOrdenId&&getOrden(activeOrdenId))renderOrden(activeOrdenId);updateFooter();actualizarEtapas()}}});
+    db.collection('config').doc('personal').onSnapshot(doc=>{if(doc.exists){personal=doc.data().data;nextPersonId=doc.data().nextId||nextPersonId;if(activeOrdenId)renderOrden(activeOrdenId)}});
+    db.collection('config').doc('categorias').onSnapshot(doc=>{if(doc.exists)categorias=doc.data().data});
+}
+
+function mostrarConexion(ok){const el=document.getElementById('connection-status');el.classList.remove('hidden');if(ok){el.textContent='🟢 Conectado';el.className='fixed top-16 right-4 z-50 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-green-500/15 text-green-400 border border-green-500/25'}else{el.textContent='🔴 Sin conexión';el.className='fixed top-16 right-4 z-50 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/25'}setTimeout(()=>el.classList.add('hidden'),4000)}
+
+// ===================================================================
+//  UTILS
+// ===================================================================
+function getNow(){const n=new Date(),dd=String(n.getDate()).padStart(2,'0'),mm=String(n.getMonth()+1).padStart(2,'0'),yyyy=n.getFullYear(),hh=String(n.getHours()).padStart(2,'0'),min=String(n.getMinutes()).padStart(2,'0');return{fecha:`${dd}/${mm}/${yyyy}`,hora:`${hh}:${min}`,full:`${dd}/${mm}/${yyyy} a las ${hh}:${min} hs`}}
+function formatFP(f){if(!f)return'—';const d=new Date(f);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} a las ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} hs`}
+function getByRol(r){return personal.filter(p=>p.rol===r)}
+function getTaller(){return personal.filter(p=>['MECANICOS','TORNERO','ELECTRICISTA','ENCARGADO'].includes(p.rol))}
+function getGestion(){return personal.filter(p=>['COMPRAS','VENTAS','GERENTE','ADMINISTRACION','LOGISTICA'].includes(p.rol))}
+function buildOpts(list,ph){let h=`<option value="">${ph}</option>`;list.forEach(p=>{h+=`<option value="${p.nombre} - ${p.rol}">${p.nombre} — ${p.rol}</option>`});return h}
+
+// ===== MODALS =====
+function abrirModalInstructivo(){document.getElementById('modal-instructivo').style.display='block'}
+function cerrarModalInstructivo(){document.getElementById('modal-instructivo').style.display='none'}
+function abrirModalPersonal(){if(!esAdmin()){alert('Solo el Administrador puede gestionar personal.');return}document.getElementById('modal-personal').style.display='block';renderCategorias();renderListaPersonal();actualizarSelectRoles()}
+function cerrarModalPersonal(){document.getElementById('modal-personal').style.display='none'}
+
+// ===== CATEGORÍAS (solo admin) =====
+function renderCategorias(){const c=document.getElementById('lista-categorias');let h='';categorias.forEach((cat,i)=>{h+=`<div class="flex items-center justify-between p-1.5 rounded bg-slate-800/30 border border-slate-700/30 mb-1"><span class="text-xs text-slate-300">${cat}</span><div class="flex gap-1"><button onclick="editarCategoria(${i})" class="text-[10px] text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/10">✏️</button><button onclick="eliminarCategoria(${i})" class="text-[10px] text-red-400 px-1.5 py-0.5 rounded hover:bg-red-500/10">✕</button></div></div>`});c.innerHTML=h}
+function agregarCategoria(){if(!esAdmin())return;const i=document.getElementById('new-categoria'),n=i.value.trim().toUpperCase();if(!n){alert('Ingrese nombre');return}if(categorias.includes(n)){alert('Ya existe');return}categorias.push(n);guardarDatos();i.value='';renderCategorias();actualizarSelectRoles()}
+function editarCategoria(i){if(!esAdmin())return;const n=prompt('Nuevo nombre:',categorias[i]);if(n&&n.trim()){const v=n.trim().toUpperCase();if(!categorias.includes(v)||categorias[i]===v){categorias[i]=v;guardarDatos();renderCategorias();actualizarSelectRoles();if(activeOrdenId)renderOrden(activeOrdenId)}}}
+function eliminarCategoria(i){if(!esAdmin())return;if(confirm('¿Eliminar?')){categorias.splice(i,1);guardarDatos();renderCategorias();actualizarSelectRoles()}}
+function actualizarSelectRoles(){const s=document.getElementById('new-person-role');s.innerHTML='<option value="">-- Categoría --</option>';categorias.forEach(c=>{s.innerHTML+=`<option value="${c}">${c}</option>`})}
+
+// ===== PERSONAL (solo admin) =====
+function agregarPersona(){if(!esAdmin())return;const n=document.getElementById('new-person-name').value.trim(),r=document.getElementById('new-person-role').value;if(!n||!r){alert('Complete');return}personal.push({id:nextPersonId++,nombre:n,rol:r});document.getElementById('new-person-name').value='';document.getElementById('new-person-role').value='';guardarDatos();renderListaPersonal();if(activeOrdenId)renderOrden(activeOrdenId)}
+function eliminarPersona(id){if(!esAdmin())return;if(!confirm('¿Eliminar?'))return;personal=personal.filter(p=>p.id!==id);guardarDatos();renderListaPersonal();if(activeOrdenId)renderOrden(activeOrdenId)}
+function renderListaPersonal(){const c=document.getElementById('lista-personal');if(!personal.length){c.innerHTML='<p class="text-xs text-slate-500 text-center py-2">Sin personal</p>';return}let h='';categorias.forEach(r=>{const ps=personal.filter(p=>p.rol===r);if(!ps.length)return;h+=`<div class="mb-2"><div class="flex items-center gap-1.5 mb-1"><span class="badge-role bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">${r}</span><span class="text-[10px] text-slate-500">(${ps.length})</span></div>`;ps.forEach(p=>{h+=`<div class="flex items-center justify-between p-1.5 rounded bg-slate-800/40 border border-slate-700/30 mb-1"><span class="text-xs text-slate-300">${p.nombre}</span><button onclick="eliminarPersona(${p.id})" class="text-[10px] text-red-400 px-1.5 py-0.5 rounded hover:bg-red-500/10">✕</button></div>`});h+=`</div>`});c.innerHTML=h}
+
+// ===== ÓRDENES =====
+function crearNuevaOrden(){const id=nextOrdenId++,ts=getNow();ordenes.push({id,numero:String(id).padStart(4,'0'),createdAt:ts.full,creadaPor:currentUser?currentUser.nombre:'—',card1:{complete:false,cliente:'',vehiculo:'',patente:'',problema:'',timestamp:''},card2:{complete:false,diagnosticoGuardado:false,mecanico:'',diagnostico:'',diagnosticoTimestamp:'',estado:'en_proceso',trabajos:'',timestamps:[],detenida:false,detenidaMotivo:'',detenidaResponsable:'',detenidaFecha:'',bannerFacturacion:'',finalTimestamp:''},card3:{complete:false,facturado:null,motivoNoFactura:'',timestamp:''},card4:{complete:false,retiraNombre:'',retiraDni:'',conformidad:false,personalEntrega:'',fechaEntregaPactada:'',timestamp:''},finalizada:false});guardarDatos();activeOrdenId=id;renderTabs();renderOrden(id);updateFooter();actualizarEtapas()}
+function seleccionarOrden(id){activeOrdenId=id;renderTabs();renderOrden(id);updateFooter();actualizarEtapas()}
+function getOrden(id){return ordenes.find(o=>o.id===id)}
+function getActiveOrden(){return activeOrdenId?getOrden(activeOrdenId):null}
+function eliminarOrden(id,ev){ev.stopPropagation();if(!esAdmin()){alert('Solo el Administrador puede eliminar órdenes.');return}if(!confirm('¿Eliminar orden?'))return;ordenes=ordenes.filter(o=>o.id!==id);guardarDatos();if(activeOrdenId===id)activeOrdenId=ordenes.length?ordenes[ordenes.length-1].id:null;renderTabs();if(activeOrdenId)renderOrden(activeOrdenId);else{document.getElementById('orden-container').innerHTML='<div class="flex items-center justify-center h-52 text-slate-600"><div class="text-center"><p class="text-4xl mb-2">🔧</p><p class="text-sm">Presione <strong class="text-indigo-400">"+ Nueva Orden"</strong></p></div></div>';document.getElementById('notificaciones-container').innerHTML='<p class="text-xs text-slate-500 italic">Seleccione una orden</p>';document.getElementById('etapas-indicator').style.display='none'}updateFooter();actualizarEtapas()}
+function getProgress(o){let p=0;if(o.card1.complete)p+=25;if(o.card2.complete)p+=25;if(o.card3.complete)p+=25;if(o.card4.complete)p+=25;return p}
+function getStatusColor(o){if(o.finalizada)return'#06b6d4';if(o.card2.detenida)return'#ef4444';return'#22c55e'}
+function getStatusText(o){if(o.finalizada)return'FINALIZADA';if(o.card2.detenida)return'DETENIDA';return'EN PROCESO'}
+
+// ===== TABS =====
+function renderTabs(){const c=document.getElementById('ordenes-tabs');if(!ordenes.length){c.innerHTML='';return}let h='';ordenes.forEach(o=>{const a=o.id===activeOrdenId,col=getStatusColor(o),pr=getProgress(o);h+=`<div class="orden-tab flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg flex-shrink-0 ${a?'active':''}" onclick="seleccionarOrden(${o.id})"><div class="tab-dot" style="background:${col}"></div><div class="flex flex-col"><span class="text-[10px] font-bold text-white whitespace-nowrap">OR-${o.numero}</span><span class="text-[9px] text-slate-500 whitespace-nowrap">${o.card1.complete?o.card1.cliente||'—':'Nueva'} · ${pr}%</span></div>${esAdmin()&&!o.card4.complete?`<button onclick="eliminarOrden(${o.id},event)" class="ml-0.5 text-slate-600 hover:text-red-400 text-[10px]">✕</button>`:''}</div>`});c.innerHTML=h}
+
+// ===== ETAPAS =====
+function actualizarEtapas(){const o=getActiveOrden(),ind=document.getElementById('etapas-indicator');if(!o){ind.style.display='none';return}ind.style.display='flex';[{id:1,ok:o.card1.complete,bl:false},{id:2,ok:o.card2.complete,bl:!o.card1.complete},{id:3,ok:o.card3.complete,bl:!o.card2.complete},{id:4,ok:o.card4.complete,bl:!o.card3.complete}].forEach(e=>{const el=document.getElementById(`etapa-${e.id}`);el.classList.remove('active','current');if(e.ok){el.style.color='#22c55e';el.style.borderColor='rgba(34,197,94,.3)';el.style.background='rgba(34,197,94,.15)'}else if(e.bl){el.style.color='#64748b';el.style.borderColor='rgba(100,116,139,.3)';el.style.background='rgba(100,116,139,.15)'}else{el.style.color='#ef4444';el.style.borderColor='rgba(239,68,68,.3)';el.style.background='rgba(239,68,68,.15)';el.classList.add('active','current')}})}
+
+// ===== NOTIFICACIONES =====
+function renderNotificaciones(o){const c=document.getElementById('notificaciones-container');if(!o){c.innerHTML='<p class="text-xs text-slate-500 italic">Seleccione una orden</p>';return}let items=[];if(o.card1.timestamp)items.push({etapa:'1 · INGRESO',text:o.card1.timestamp,color:o.card1.complete?'green':'red'});if(o.card2.diagnosticoTimestamp)items.push({etapa:'2 · OPERATIVA',text:o.card2.diagnosticoTimestamp,color:o.card2.complete?'green':'indigo'});o.card2.timestamps.forEach(t=>items.push({etapa:'2 · OPERATIVA',text:t.text,color:o.card2.complete?'green':t.color}));if(o.card2.bannerFacturacion)items.push({etapa:'2 · OPERATIVA',text:`📢 Aviso Administración — ${o.card2.bannerFacturacion}`,color:o.card2.complete?'green':'amber'});if(o.card2.finalTimestamp)items.push({etapa:'2 · OPERATIVA',text:o.card2.finalTimestamp,color:'green'});if(o.card3.timestamp)items.push({etapa:'3 · ADMIN',text:o.card3.timestamp,color:o.card3.complete?'green':'indigo'});if(o.card3.motivoNoFactura&&!o.card3.complete)items.push({etapa:'3 · ADMIN',text:`⛔ Sin facturar: ${o.card3.motivoNoFactura}`,color:'red'});if(o.card4.timestamp)items.push({etapa:'4 · ENTREGA',text:o.card4.timestamp,color:o.finalizada?'cyan':'green'});if(!items.length){c.innerHTML='<p class="text-xs text-slate-500 italic">Sin notificaciones</p>';return}let h='';items.forEach(it=>{h+=`<div class="notif-${it.color} pl-3 py-2.5 pr-2 mb-2 rounded-r-lg bg-slate-800/30 fade-in"><div class="text-[11px] font-bold opacity-80 mb-1">${it.etapa}</div><div class="text-[13px] leading-snug font-medium">${it.text}</div></div>`});c.innerHTML=h}
+
+// ===== RENDER ORDEN =====
+function renderOrden(id){const o=getOrden(id);if(!o)return;const mec=getByRol('MECANICOS'),ges=getGestion(),tal=getTaller(),todos=personal,cn=document.getElementById('orden-container');
+function sb(c,b){return c?'status-bar-green':(b?'status-bar-gray':'status-bar-red')}
+function nb(c,b){return c?'bg-green-500/20 text-green-400':(b?'bg-slate-500/20 text-slate-400':'bg-red-500/20 text-red-400')}
+function bb(c,b){return c?'bg-green-500/15 text-green-400 border-green-500/20':(b?'bg-slate-500/15 text-slate-400 border-slate-500/20':'bg-red-500/15 text-red-400 border-red-500/20')}
+function bt(c,b){return c?'Completado':(b?'Bloqueado':'Pendiente')}
+cn.innerHTML=`<div class="mb-3 flex items-center gap-2"><h2 class="text-sm font-bold text-white">OR-${o.numero}</h2><span class="text-[10px] text-slate-500">${o.createdAt}${o.creadaPor?' · por '+o.creadaPor:''}</span></div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="glass-card rounded-xl shadow-lg overflow-hidden"><div class="h-1 ${sb(o.card1.complete,false)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card1.complete,false)}">1</div><div><div class="text-xs font-bold text-white">Ingreso</div><div class="text-[9px] text-slate-500">Recepción</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card1.complete,false)}">${bt(o.card1.complete,false)}</span></div><div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Cliente</label><input data-field="c1-cliente" value="${o.card1.cliente}" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Cliente..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Vehículo</label><input data-field="c1-vehiculo" value="${o.card1.vehiculo}" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Unidad..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Patente</label><input data-field="c1-patente" value="${o.card1.patente}" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Patente..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Problema</label><textarea data-field="c1-problema" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Descripción...">${o.card1.problema}</textarea></div></div><div data-error="c1-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>${!o.card1.complete?`<button onclick="guardarIngreso(${o.id})" class="btn-primary w-full mt-3 py-2 rounded-lg text-white font-semibold text-xs">💾 Guardar Ingreso</button>`:''}</div></div>
+<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card1.complete?'blocked':''}"><div class="h-1 ${sb(o.card2.complete,!o.card1.complete)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card2.complete,!o.card1.complete)}">2</div><div><div class="text-xs font-bold text-white">Operativa</div><div class="text-[9px] text-slate-500">Mecánico</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card2.complete,!o.card1.complete)}">${bt(o.card2.complete,!o.card1.complete)}</span></div><div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Mecánico</label><select data-field="c2-mecanico" ${o.card2.diagnosticoGuardado||o.card2.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(mec,'-- Mecánico --')}</select></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Diagnóstico</label><textarea data-field="c2-diagnostico" ${o.card2.diagnosticoGuardado||o.card2.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Diagnóstico...">${o.card2.diagnostico}</textarea></div>${!o.card2.diagnosticoGuardado&&!o.card2.complete?`<button onclick="guardarDiagnostico(${o.id})" class="btn-primary w-full py-1.5 rounded-lg text-white font-semibold text-xs">📋 Guardar Diagnóstico</button>`:''}</div>${o.card2.diagnosticoGuardado&&!o.card2.complete?`<div class="mt-3 space-y-2"><label class="block text-[10px] text-slate-400 mb-0.5">Estado</label><select data-field="c2-estado" onchange="cambiarEstado(${o.id})" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs font-semibold" style="color:${o.card2.estado==='en_proceso'?'#22c55e':o.card2.estado==='parado'?'#ef4444':'#e2e8f0'}"><option value="en_proceso" ${o.card2.estado==='en_proceso'?'selected':''}>🟢 En Proceso</option><option value="terminado" ${o.card2.estado==='terminado'?'selected':''}>✅ Terminado</option><option value="parado" ${o.card2.estado==='parado'?'selected':''}>🔴 Parado</option></select><div data-section="c2-terminado" class="${o.card2.estado==='terminado'?'':'hidden'} space-y-2"><textarea data-field="c2-trabajos" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Trabajos...">${o.card2.trabajos}</textarea><button onclick="finalizarOperativa(${o.id})" class="btn-success w-full py-2 rounded-lg text-white font-semibold text-xs">✅ Finalizar</button></div><div data-section="c2-derivacion" class="${o.card2.estado==='parado'&&!o.card2.detenida?'':'hidden'}"><div class="p-2 rounded-lg bg-red-500/10 border border-red-500/20 space-y-2"><div class="text-[10px] font-bold text-red-400">⚠️ DERIVACIÓN</div><select data-field="c2-causal" onchange="cambiarCausal()" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"><option value="">-- Causal --</option><option value="Falta de Repuesto">Falta de Repuesto</option><option value="Se envió al Tornero">Al Tornero</option><option value="Se envió al Electricista">Al Electricista</option><option value="Se envió a Rectificación">A Rectificación</option><option value="Otro motivo">Otro</option></select><div data-section="c2-causal-otro" class="hidden"><input data-field="c2-causal-otro-txt" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Detalle..."></div><select data-field="c2-persona-designada" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(ges,'-- Responsable --')}</select><button onclick="confirmarDerivacion(${o.id})" class="btn-danger w-full py-1.5 rounded-lg text-white font-semibold text-xs">🚨 Confirmar</button></div></div><div data-section="c2-destrabe" class="${o.card2.detenida?'':'hidden'}"><div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2"><div class="text-[10px] font-bold text-amber-400">🔧 DESTRABE</div><p class="text-xs text-white font-semibold">¿${o.card2.detenidaResponsable||'—'}, resuelto?</p><div class="flex gap-4"><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="destrabe-${o.id}" value="si" class="radio-custom" onchange="cambiarDestrabe(${o.id})"><span class="text-xs text-green-400">SÍ</span></label><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="destrabe-${o.id}" value="no" class="radio-custom" onchange="cambiarDestrabe(${o.id})"><span class="text-xs text-red-400">NO</span></label></div><div data-section="c2-destrabe-si" class="hidden space-y-1.5"><select data-field="c2-entrega-pedido" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(tal,'-- Entregado a --')}</select><button onclick="guardarEntrega(${o.id})" class="btn-success w-full py-1.5 rounded-lg text-white font-semibold text-xs">✅ Guardar</button></div><div data-section="c2-destrabe-no" class="hidden space-y-1.5"><input type="date" data-field="c2-destrabe-fecha" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"><textarea data-field="c2-destrabe-motivo" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Motivo..."></textarea><button onclick="guardarRetraso(${o.id})" class="btn-warning w-full py-1.5 rounded-lg text-white font-semibold text-xs">📅 Registrar</button></div></div></div></div>`:''}<div data-error="c2-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div></div></div>
+<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card2.complete?'blocked':''}"><div class="h-1 ${sb(o.card3.complete,!o.card2.complete)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card3.complete,!o.card2.complete)}">3</div><div><div class="text-xs font-bold text-white">Administración</div><div class="text-[9px] text-slate-500">Oficina</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card3.complete,!o.card2.complete)}">${bt(o.card3.complete,!o.card2.complete)}</span></div><div class="mb-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-1"><div><span class="text-[9px] text-slate-500 uppercase">Diagnóstico:</span><p class="text-[10px] text-slate-300">${o.card2.diagnostico||'—'}</p></div><div class="border-t border-slate-700/50 pt-1"><span class="text-[9px] text-slate-500 uppercase">Trabajos:</span><p class="text-[10px] text-slate-300">${o.card2.trabajos||'—'}</p></div></div>${!o.card3.complete?`<div class="space-y-2"><label class="block text-[10px] text-slate-400 mb-1">¿Se facturó?</label><div class="flex gap-4"><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="factura-${o.id}" value="si" class="radio-custom" ${o.card3.facturado===true?'checked':''} onchange="cambiarFactura(${o.id})"><span class="text-xs text-green-400">SÍ</span></label><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="factura-${o.id}" value="no" class="radio-custom" ${o.card3.facturado===false?'checked':''} onchange="cambiarFactura(${o.id})"><span class="text-xs text-red-400">NO</span></label></div><div data-section="c3-no" class="${o.card3.facturado===false?'':'hidden'} space-y-1.5"><textarea data-field="c3-motivo-no" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="¿Por qué?">${o.card3.motivoNoFactura}</textarea><button onclick="guardarNoFactura(${o.id})" class="btn-danger w-full py-1.5 rounded-lg text-white font-semibold text-xs">⚠️ Registrar</button></div><div data-section="c3-si" class="${o.card3.facturado===true?'':'hidden'} space-y-1.5"><div class="p-2 rounded-lg alert-banner-success"><p class="text-[10px] text-green-400 font-semibold">✅ Facturado. Proceder a entrega.</p></div><button onclick="confirmarFactura(${o.id})" class="btn-success w-full py-2 rounded-lg text-white font-semibold text-xs">📦 Confirmar</button></div></div>`:`<div class="p-2 rounded-lg alert-banner-success"><p class="text-[10px] text-green-400 font-semibold">✅ Facturado</p></div>`}<div data-error="c3-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div></div></div>
+<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card3.complete?'blocked':''}"><div class="h-1 ${sb(o.card4.complete,!o.card3.complete)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card4.complete,!o.card3.complete)}">4</div><div><div class="text-xs font-bold text-white">Entrega</div><div class="text-[9px] text-slate-500">Recepción</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card4.complete,!o.card3.complete)}">${bt(o.card4.complete,!o.card3.complete)}</span></div><div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Quien retira</label><input data-field="c4-nombre" value="${o.card4.retiraNombre}" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Nombre..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">DNI</label><input data-field="c4-dni" value="${o.card4.retiraDni}" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="DNI..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Personal entrega</label><select data-field="c4-personal-entrega" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(todos,'-- Personal --')}</select></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Fecha pactada</label><input type="datetime-local" data-field="c4-fecha-pactada" value="${o.card4.fechaEntregaPactada||''}" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"></div><div class="flex items-start gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50"><input type="checkbox" data-field="c4-conformidad" class="checkbox-custom mt-0.5" ${o.card4.conformidad?'checked':''} ${o.card4.complete?'disabled':''}><label class="text-[10px] text-slate-300"><strong>Conformidad</strong></label></div></div><div data-error="c4-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>${!o.card4.complete?`<button onclick="cerrarOrden(${o.id})" class="btn-primary w-full mt-3 py-2 rounded-lg text-white font-semibold text-xs">🔒 Cerrar Orden</button>`:`<div class="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 space-y-0.5"><p class="text-xs text-cyan-400 font-bold">✅ CERRADA</p><p class="text-[10px] text-slate-400">Por: ${o.card4.personalEntrega}</p><p class="text-[10px] text-slate-400">Pactada: ${o.card4.fechaEntregaPactada?formatFP(o.card4.fechaEntregaPactada):'—'}</p></div>`}</div></div>
+</div>`;
+setTimeout(()=>{const s1=document.querySelector('[data-field="c2-mecanico"]');if(s1)s1.value=o.card2.mecanico;const s2=document.querySelector('[data-field="c4-personal-entrega"]');if(s2)s2.value=o.card4.personalEntrega},10);
+renderNotificaciones(o);updateFooter()}
+
+// ===== HELPERS =====
+function gf(n){const e=document.querySelector(`[data-field="${n}"]`);return e?e.value.trim():''}
+function gc(n){const e=document.querySelector(`[data-field="${n}"]`);return e?e.checked:false}
+function showErr(n,m){const e=document.querySelector(`[data-error="${n}"]`);if(!e)return;e.textContent=m;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),5000)}
+function hideErr(n){const e=document.querySelector(`[data-error="${n}"]`);if(e)e.classList.add('hidden')}
+
+// ===== CARD 1 =====
+function guardarIngreso(id){hideErr('c1-error');const o=getOrden(id),cl=gf('c1-cliente'),ve=gf('c1-vehiculo'),pa=gf('c1-patente'),pr=gf('c1-problema');if(!cl||!ve||!pa||!pr){showErr('c1-error','⚠️ Todos obligatorios.');return}o.card1={complete:true,cliente:cl,vehiculo:ve,patente:pa,problema:pr,timestamp:`Ingresado por ${currentUser?currentUser.nombre:'—'} el ${getNow().full}`};guardarDatos();renderTabs();renderOrden(id);actualizarEtapas()}
+
+// ===== CARD 2 =====
+function guardarDiagnostico(id){hideErr('c2-error');const o=getOrden(id),m=gf('c2-mecanico'),d=gf('c2-diagnostico');if(!m||!d){showErr('c2-error','⚠️ Complete.');return}o.card2.diagnosticoGuardado=true;o.card2.mecanico=m;o.card2.diagnostico=d;o.card2.diagnosticoTimestamp=`Diagnóstico por ${currentUser?currentUser.nombre:'—'} el ${getNow().full}`;guardarDatos();renderOrden(id);actualizarEtapas()}
+function cambiarEstado(id){const o=getOrden(id),sel=document.querySelector('[data-field="c2-estado"]'),v=sel.value;o.card2.estado=v;sel.style.color=v==='en_proceso'?'#22c55e':v==='parado'?'#ef4444':'#e2e8f0';document.querySelector('[data-section="c2-terminado"]')?.classList.toggle('hidden',v!=='terminado');document.querySelector('[data-section="c2-derivacion"]')?.classList.toggle('hidden',v!=='parado'||o.card2.detenida);document.querySelector('[data-section="c2-destrabe"]')?.classList.toggle('hidden',!o.card2.detenida||v!=='parado');if(v==='parado'&&o.card2.detenida)document.querySelector('[data-section="c2-destrabe"]')?.classList.remove('hidden');guardarDatos();actualizarEtapas()}
+function cambiarCausal(){const v=document.querySelector('[data-field="c2-causal"]')?.value;document.querySelector('[data-section="c2-causal-otro"]')?.classList.toggle('hidden',v!=='Otro motivo')}
+function confirmarDerivacion(id){hideErr('c2-error');const o=getOrden(id),ca=document.querySelector('[data-field="c2-causal"]')?.value||'',co=gf('c2-causal-otro-txt'),pe=document.querySelector('[data-field="c2-persona-designada"]')?.value||'';if(!ca){showErr('c2-error','⚠️ Causal.');return}if(ca==='Otro motivo'&&!co){showErr('c2-error','⚠️ Detalle.');return}if(!pe){showErr('c2-error','⚠️ Responsable.');return}const mf=ca==='Otro motivo'?co:ca,ts=getNow();o.card2.detenida=true;o.card2.detenidaMotivo=mf;o.card2.detenidaResponsable=pe;o.card2.detenidaFecha=ts.full;o.card2.timestamps.push({text:`⏸️ ${mf} — ${pe} — ${ts.full}`,color:'red'});guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+function cambiarDestrabe(id){const v=document.querySelector(`input[name="destrabe-${id}"]:checked`)?.value;if(!v)return;document.querySelector('[data-section="c2-destrabe-si"]')?.classList.toggle('hidden',v!=='si');document.querySelector('[data-section="c2-destrabe-no"]')?.classList.toggle('hidden',v!=='no')}
+function guardarEntrega(id){hideErr('c2-error');const o=getOrden(id),ea=document.querySelector('[data-field="c2-entrega-pedido"]')?.value||'';if(!ea){showErr('c2-error','⚠️ Destinatario.');return}o.card2.timestamps.push({text:`▶️ Entregado a ${ea} — ${getNow().full}`,color:'green'});o.card2.detenida=false;o.card2.detenidaMotivo='';o.card2.detenidaResponsable='';o.card2.detenidaFecha='';o.card2.estado='en_proceso';guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+function guardarRetraso(id){hideErr('c2-error');const o=getOrden(id),fe=document.querySelector('[data-field="c2-destrabe-fecha"]')?.value||'',mo=gf('c2-destrabe-motivo');if(!fe){showErr('c2-error','⚠️ Fecha.');return}if(!mo){showErr('c2-error','⚠️ Motivo.');return}const fp=fe.split('-');o.card2.timestamps.push({text:`📅 ${fp[2]}/${fp[1]}/${fp[0]} — ${mo} — ${getNow().full}`,color:'amber'});guardarDatos();renderOrden(id);actualizarEtapas()}
+function finalizarOperativa(id){hideErr('c2-error');const o=getOrden(id),tr=gf('c2-trabajos');if(!tr){showErr('c2-error','⚠️ Trabajos.');return}const ts=getNow();o.card2.complete=true;o.card2.trabajos=tr;o.card2.detenida=false;o.card2.bannerFacturacion=ts.full;o.card2.finalTimestamp=`Operativa finalizada el ${ts.full}`;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+
+// ===== CARD 3 =====
+function cambiarFactura(id){const o=getOrden(id),v=document.querySelector(`input[name="factura-${id}"]:checked`)?.value;o.card3.facturado=v==='si';document.querySelector('[data-section="c3-si"]')?.classList.toggle('hidden',v!=='si');document.querySelector('[data-section="c3-no"]')?.classList.toggle('hidden',v!=='no');guardarDatos()}
+function guardarNoFactura(id){hideErr('c3-error');const o=getOrden(id),m=gf('c3-motivo-no');if(!m){showErr('c3-error','⚠️ Motivo.');return}o.card3.motivoNoFactura=m;guardarDatos();renderNotificaciones(o);showErr('c3-error',`⛔ Bloqueado: "${m}". Seleccione SÍ.`)}
+function confirmarFactura(id){hideErr('c3-error');const o=getOrden(id);o.card3.complete=true;o.card3.facturado=true;o.card3.timestamp=`Admin completada por ${currentUser?currentUser.nombre:'—'} el ${getNow().full}. Facturado: SÍ`;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+
+// ===== CARD 4 =====
+function cerrarOrden(id){hideErr('c4-error');const o=getOrden(id),no=gf('c4-nombre'),dn=gf('c4-dni'),co=gc('c4-conformidad'),pe=gf('c4-personal-entrega'),fp=gf('c4-fecha-pactada');if(!no){showErr('c4-error','⚠️ Nombre.');return}if(!dn){showErr('c4-error','⚠️ DNI.');return}if(!pe){showErr('c4-error','⚠️ Personal.');return}if(!fp){showErr('c4-error','⚠️ Fecha.');return}if(!co){showErr('c4-error','⚠️ Conformidad.');return}const ts=getNow();o.card4={complete:true,retiraNombre:no,retiraDni:dn,conformidad:true,personalEntrega:pe,fechaEntregaPactada:fp,timestamp:`Cerrada por ${currentUser?currentUser.nombre:'—'} ${ts.full}. A: ${no} (${dn}). Por: ${pe}. Pactada: ${formatFP(fp)}`};o.finalizada=true;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+
+// ===== FOOTER =====
+function updateFooter(){const o=getActiveOrden();if(!o){document.getElementById('footer-orden-label').textContent='Sin orden activa';document.getElementById('progress-text').textContent='0%';document.getElementById('progress-bar').style.width='0%';const b=document.getElementById('status-badge');b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-slate-700/50 text-slate-500 border border-slate-600/30';b.textContent='[ SIN ORDEN ]';b.classList.remove('blink-animation');document.getElementById('status-tooltip').classList.add('hidden')}else{const pr=getProgress(o);document.getElementById('footer-orden-label').textContent=`OR-${o.numero} · ${o.card1.cliente||'Nueva'}`;document.getElementById('progress-text').textContent=pr+'%';document.getElementById('progress-bar').style.width=pr+'%';const b=document.getElementById('status-badge'),tt=document.getElementById('status-tooltip');b.classList.remove('blink-animation');if(o.finalizada){b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';b.textContent='[ FINALIZADA ]';tt.classList.add('hidden')}else if(o.card2.detenida){b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-red-500/20 text-red-400 border border-red-500/30 blink-animation';b.textContent='[ DETENIDA ]';tt.classList.remove('hidden');document.getElementById('tooltip-motivo').textContent='⚠️ '+o.card2.detenidaMotivo;document.getElementById('tooltip-responsable').textContent='👤 '+o.card2.detenidaResponsable;document.getElementById('tooltip-fecha').textContent='🕐 '+o.card2.detenidaFecha}else{b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-green-500/20 text-green-400 border border-green-500/30';b.textContent='[ EN PROCESO ]';tt.classList.add('hidden')}}document.getElementById('footer-ordenes-count').textContent=ordenes.length+' orden'+(ordenes.length!==1?'es':'')}
+
+// ===== EXCEL =====
+function exportarExcel(){if(!ordenes.length){alert('No hay órdenes.');return}const data=ordenes.map(o=>{const pr=getProgress(o),st=getStatusText(o);return{'Orden':'OR-'+o.numero,'Creación':o.createdAt,'Creada por':o.creadaPor||'—','Estado':st,'Progreso':pr+'%','Cliente':o.card1.cliente||'—','Vehículo':o.card1.vehiculo||'—','Patente':o.card1.patente||'—','Problema':o.card1.problema||'—','Ingreso':o.card1.timestamp||'—','Mecánico':o.card2.mecanico||'—','Diagnóstico':o.card2.diagnostico||'—','Trabajos':o.card2.trabajos||'—','Detenida':o.card2.detenida?'SÍ':'NO','Mot.Detención':o.card2.detenidaMotivo||'—','Resp.Detención':o.card2.detenidaResponsable||'—','Historial':o.card2.timestamps.map(t=>t.text).join(' | ')||'—','Facturado':o.card3.facturado===true?'SÍ':o.card3.facturado===false?'NO':'Pend','Retira':o.card4.retiraNombre||'—','DNI':o.card4.retiraDni||'—','Personal Entrega':o.card4.personalEntrega||'—','Fecha Pactada':o.card4.fechaEntregaPactada?formatFP(o.card4.fechaEntregaPactada):'—','Cierre':o.card4.timestamp||'Pend'}});const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Órdenes');const res=[{Ind:'Total',Val:ordenes.length},{Ind:'En Proceso',Val:ordenes.filter(o=>!o.finalizada&&!o.card2.detenida).length},{Ind:'Detenidas',Val:ordenes.filter(o=>o.card2.detenida).length},{Ind:'Finalizadas',Val:ordenes.filter(o=>o.finalizada).length},{Ind:'Generado por',Val:currentUser?currentUser.nombre:'—'},{Ind:'Fecha',Val:getNow().full}];XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(res),'Resumen');XLSX.writeFile(wb,`HE_Informe_${getNow().fecha.replace(/\//g,'-')}.xlsx`)}
+</script>
+</body>
+</html>
