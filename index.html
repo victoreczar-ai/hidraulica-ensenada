@@ -6,6 +6,8 @@
     <title>Hidráulica Ensenada</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,6 +20,7 @@
         .status-bar-red{background:linear-gradient(90deg,#ef4444,#dc2626)}
         .status-bar-green{background:linear-gradient(90deg,#22c55e,#16a34a)}
         .status-bar-gray{background:linear-gradient(90deg,#64748b,#475569)}
+        .status-bar-orange{background:linear-gradient(90deg,#f97316,#ea580c)}
         .input-glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e2e8f0;transition:all .3s ease}
         .input-glass:focus{outline:none;border-color:rgba(99,102,241,.6);box-shadow:0 0 0 3px rgba(99,102,241,.15);background:rgba(255,255,255,.08)}
         .input-glass::placeholder{color:rgba(148,163,184,.6)}
@@ -31,15 +34,19 @@
         .btn-danger:hover:not(:disabled){box-shadow:0 10px 25px -5px rgba(239,68,68,.4);transform:translateY(-1px)}
         .btn-warning{background:linear-gradient(135deg,#f59e0b,#d97706)}
         .btn-warning:hover:not(:disabled){box-shadow:0 10px 25px -5px rgba(245,158,11,.4);transform:translateY(-1px)}
+        .btn-edit{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+        .btn-edit:hover{box-shadow:0 10px 25px -5px rgba(139,92,246,.4);transform:translateY(-1px)}
+        .btn-pdf{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+        .btn-pdf:hover{box-shadow:0 10px 25px -5px rgba(220,38,38,.4);transform:translateY(-1px)}
         .progress-bar-fill{background:linear-gradient(90deg,#6366f1,#8b5cf6,#a78bfa);transition:width .8s cubic-bezier(.4,0,.2,1);border-radius:9999px;position:relative;overflow:hidden}
         .progress-bar-fill::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:shimmer 2s infinite}
         @keyframes shimmer{100%{left:100%}}
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+        @keyframes blinkSlow{0%,100%{opacity:1}50%{opacity:.4}}
         .blink-animation{animation:blink 1s ease-in-out infinite}
+        .blink-slow{animation:blinkSlow 2s ease-in-out infinite}
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         .fade-in{animation:fadeIn .3s ease-out forwards}
-        .timestamp-badge{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25)}
-        .alert-banner{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3)}
         .alert-banner-success{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3)}
         .tooltip-custom{visibility:hidden;opacity:0;transition:all .3s ease;position:absolute;bottom:100%;right:0;z-index:100;min-width:280px}
         .tooltip-trigger:hover .tooltip-custom{visibility:visible;opacity:1}
@@ -59,26 +66,66 @@
         .orden-tab.active{background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.4)}
         .orden-tab .tab-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
         .modal-overlay{background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
-        .badge-role{font-size:.6rem;padding:1px 5px;border-radius:5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+        .badge-role{font-size:.6rem;padding:1px 5px;border-radius:5px;font-weight:600;text-transform:uppercase}
         .etapa-box{transition:all .3s ease;position:relative}
         .etapa-box.active::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid currentColor}
         .etapa-box.current::before{content:'';position:absolute;inset:-1.5px;border-radius:6px;border:1.5px solid currentColor;opacity:.5;animation:pulse 2s infinite}
         @keyframes pulse{0%,100%{opacity:.5}50%{opacity:.2}}
-        #etapas-indicator .flex{justify-content:flex-end;padding-right:1rem}
         .notif-green{border-left:3px solid #22c55e;color:#86efac}
         .notif-red{border-left:3px solid #ef4444;color:#fca5a5}
         .notif-amber{border-left:3px solid #f59e0b;color:#fcd34d}
         .notif-indigo{border-left:3px solid #6366f1;color:#a5b4fc}
         .notif-cyan{border-left:3px solid #06b6d4;color:#67e8f9}
-        /* Login screen */
+        .notif-orange{border-left:3px solid #f97316;color:#fdba74}
         .login-card{background:rgba(255,255,255,.07);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.1)}
-        #login-screen{transition:opacity .5s ease}
-        #app-screen{transition:opacity .5s ease}
+        .editing-border{border:2px solid rgba(139,92,246,.5)!important;box-shadow:0 0 15px rgba(139,92,246,.2)!important}
+        /* CATEGORY CARD in personal modal */
+        .cat-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:10px;transition:all .3s}
+        .cat-card:hover{border-color:rgba(99,102,241,.3)}
+        .cat-person-item{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:4px;transition:all .2s}
+        .cat-person-item:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12)}
+        .cat-add-person{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)}
+        /* STOP BUTTON */
+        .btn-stop{
+            width:32px;height:32px;border-radius:50%;
+            background:white;border:3px solid #dc2626;
+            display:flex;align-items:center;justify-content:center;
+            cursor:pointer;transition:all .3s ease;
+            box-shadow:0 2px 8px rgba(220,38,38,.3);
+            position:relative;flex-shrink:0;
+        }
+        .btn-stop:hover{transform:scale(1.15);box-shadow:0 4px 16px rgba(220,38,38,.5);border-color:#b91c1c}
+        .btn-stop:active{transform:scale(.95)}
+        .btn-stop-text{
+            font-size:6px;font-weight:900;color:#dc2626;
+            text-transform:uppercase;letter-spacing:.3px;line-height:1;
+        }
+        .btn-stop-inner{
+            width:22px;height:22px;border-radius:50%;
+            background:linear-gradient(135deg,#ef4444,#dc2626);
+            display:flex;align-items:center;justify-content:center;
+        }
+        .btn-stop-inner span{color:white;font-size:5.5px;font-weight:900;letter-spacing:.2px}
+        /* STOP BANNER */
+        .stop-banner{
+            background:rgba(239,68,68,.08);
+            border:1px solid rgba(239,68,68,.25);
+            border-radius:10px;padding:10px;margin-top:8px;
+        }
+        .stop-banner-title{font-size:10px;font-weight:800;color:#ef4444;display:flex;align-items:center;gap:4px}
+        .stop-banner-row{font-size:10px;color:#fca5a5;margin-top:3px;display:flex;align-items:flex-start;gap:4px}
+        .stop-banner-row span.label{color:#94a3b8;min-width:60px;flex-shrink:0}
+        .stop-resume-btn{
+            margin-top:6px;padding:4px 10px;border-radius:6px;font-size:9px;font-weight:700;
+            background:linear-gradient(135deg,#22c55e,#16a34a);color:white;cursor:pointer;
+            border:none;transition:all .2s;
+        }
+        .stop-resume-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(34,197,94,.3)}
     </style>
 </head>
 <body class="text-slate-200">
 
-<!-- ============ PANTALLA DE LOGIN ============ -->
+<!-- LOGIN -->
 <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
     <div class="login-card rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <div class="text-center mb-6">
@@ -89,361 +136,912 @@
             <p class="text-xs text-slate-500 mt-1">Sistema de Gestión de Órdenes</p>
         </div>
         <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Usuario</label>
-                <input type="text" id="login-user" class="input-glass w-full px-4 py-3 rounded-xl text-sm" placeholder="Ingrese su usuario..." autofocus>
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Contraseña</label>
-                <input type="password" id="login-pass" class="input-glass w-full px-4 py-3 rounded-xl text-sm" placeholder="Ingrese su contraseña..." onkeydown="if(event.key==='Enter')intentarLogin()">
-            </div>
-            <div id="login-error" class="hidden p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium"></div>
-            <button onclick="intentarLogin()" class="btn-primary w-full py-3 rounded-xl text-white font-bold text-sm shadow-lg">
-                🔐 Ingresar al Sistema
-            </button>
-        </div>
-        <div class="mt-6 p-3 rounded-xl bg-slate-800/50 border border-slate-700/30">
-            <p class="text-[10px] text-slate-500 text-center">⚠️ Acceso solo para personal autorizado</p>
+            <div><label class="block text-xs font-medium text-slate-400 mb-1">Usuario</label><input type="text" id="login-user" class="input-glass w-full px-4 py-3 rounded-xl text-sm" placeholder="Usuario..." autofocus></div>
+            <div><label class="block text-xs font-medium text-slate-400 mb-1">Contraseña</label><input type="password" id="login-pass" class="input-glass w-full px-4 py-3 rounded-xl text-sm" placeholder="Contraseña..." onkeydown="if(event.key==='Enter')intentarLogin()"></div>
+            <div id="login-error" class="hidden p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs"></div>
+            <button onclick="intentarLogin()" class="btn-primary w-full py-3 rounded-xl text-white font-bold text-sm shadow-lg">🔐 Ingresar</button>
         </div>
     </div>
 </div>
 
-<!-- ============ PANTALLA DE LA APLICACIÓN ============ -->
+<!-- APP -->
 <div id="app-screen" class="pb-20" style="display:none">
-
-<!-- HEADER -->
 <header class="sticky top-0 z-50 px-4 sm:px-6 py-3" style="background:rgba(15,23,42,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06)">
     <div class="max-w-[1400px] mx-auto flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            </div>
-            <div>
-                <h1 class="text-lg sm:text-xl font-bold header-logo">HIDRÁULICA ENSENADA</h1>
-                <p class="text-[10px] text-slate-500 font-medium tracking-wider uppercase">Sistema de Gestión de Órdenes</p>
-            </div>
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+            <div><h1 class="text-lg sm:text-xl font-bold header-logo">HIDRÁULICA ENSENADA</h1><p class="text-[10px] text-slate-500 font-medium tracking-wider uppercase">Gestión de Órdenes</p></div>
         </div>
         <div class="flex items-center gap-1.5 flex-wrap">
             <span id="user-badge" class="px-2.5 py-1 rounded-lg text-[10px] font-bold border"></span>
-            <button onclick="abrirModalInstructivo()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition-all">📖 Instructivo</button>
-            <button id="btn-personal" onclick="abrirModalPersonal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 transition-all">👥 Personal</button>
-            <button onclick="exportarExcel()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 transition-all">📊 Excel</button>
-            <button onclick="crearNuevaOrden()" class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold btn-primary text-white shadow-lg">＋ Nueva Orden</button>
-            <button onclick="cerrarSesion()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25 transition-all">🚪 Salir</button>
+            <button onclick="abrirModalInstructivo()" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700">📖</button>
+            <button id="btn-personal" onclick="abrirModalPersonal()" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700">👥</button>
+            <button onclick="exportarExcel()" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30">📊 Excel</button>
+            <button onclick="generarPDF()" class="btn-pdf px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-lg">📄 Informe Gerente</button>
+            <button onclick="crearNuevaOrden()" class="px-3 py-1.5 rounded-lg text-xs font-bold btn-primary text-white shadow-lg">＋ Nueva Orden</button>
+            <button onclick="cerrarSesion()" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25">🚪</button>
         </div>
     </div>
 </header>
-
-<!-- ETAPAS + TABS -->
-<div class="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3">
-    <div class="flex items-center justify-between flex-wrap gap-2 pb-2">
-        <div class="flex items-center gap-2 overflow-x-auto flex-1" id="ordenes-tabs" style="scrollbar-width:none"></div>
-        <div id="etapas-indicator" class="flex items-center gap-1.5" style="display:none">
-            <div id="etapa-1" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>1 INGRESO</span></div>
-            <div class="w-px h-3 bg-slate-700"></div>
-            <div id="etapa-2" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>2 OPERATIVA</span></div>
-            <div class="w-px h-3 bg-slate-700"></div>
-            <div id="etapa-3" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>3 ADMIN</span></div>
-            <div class="w-px h-3 bg-slate-700"></div>
-            <div id="etapa-4" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>4 ENTREGA</span></div>
-        </div>
-    </div>
-</div>
-
-<!-- CONTENEDOR PRINCIPAL -->
-<main class="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
-    <div class="flex gap-4">
-        <div class="flex-1 min-w-0" id="orden-container">
-            <div class="flex items-center justify-center h-52 text-slate-600"><div class="text-center"><p class="text-4xl mb-2">🔧</p><p class="text-sm">Presione <strong class="text-indigo-400">"+ Nueva Orden"</strong> para comenzar</p></div></div>
-        </div>
-        <div class="w-80 flex-shrink-0 hidden lg:block" id="notif-panel-wrapper">
-            <div class="glass-card panel-notif rounded-2xl shadow-xl p-4 sticky top-20" style="max-height:calc(100vh - 110px);overflow-y:auto">
-                <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-700/50">
-                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                    <span class="text-sm font-bold text-white">Notificaciones</span>
-                </div>
-                <div id="notificaciones-container"><p class="text-xs text-slate-500 italic">Seleccione una orden</p></div>
-            </div>
-        </div>
-    </div>
-</main>
-
-<!-- CONEXIÓN INDICATOR -->
+<div class="max-w-[1400px] mx-auto px-4 sm:px-6 pt-3"><div class="flex items-center justify-between flex-wrap gap-2 pb-2"><div class="flex items-center gap-2 overflow-x-auto flex-1" id="ordenes-tabs" style="scrollbar-width:none"></div><div id="etapas-indicator" class="flex items-center gap-1.5" style="display:none"><div id="etapa-1" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>1 INGRESO</span></div><div class="w-px h-3 bg-slate-700"></div><div id="etapa-2" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>2 OPERATIVA</span></div><div class="w-px h-3 bg-slate-700"></div><div id="etapa-3" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>3 ADMIN</span></div><div class="w-px h-3 bg-slate-700"></div><div id="etapa-4" class="flex items-center px-2 py-1 rounded border text-[9px] font-bold relative"><span>4 ENTREGA</span></div></div></div></div>
+<main class="max-w-[1400px] mx-auto px-4 sm:px-6 py-3"><div class="flex gap-4"><div class="flex-1 min-w-0" id="orden-container"><div class="flex items-center justify-center h-52 text-slate-600"><div class="text-center"><p class="text-4xl mb-2">🔧</p><p class="text-sm">Presione <strong class="text-indigo-400">"+ Nueva Orden"</strong></p></div></div></div><div class="w-80 flex-shrink-0 hidden lg:block"><div class="glass-card panel-notif rounded-2xl shadow-xl p-4 sticky top-20" style="max-height:calc(100vh-110px);overflow-y:auto"><div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-700/50"><svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span class="text-sm font-bold text-white">Notificaciones</span></div><div id="notificaciones-container"><p class="text-xs text-slate-500 italic">Seleccione una orden</p></div></div></div></div></main>
 <div id="connection-status" class="fixed top-16 right-4 z-50 px-3 py-1.5 rounded-lg text-[10px] font-bold hidden"></div>
-
-</div><!-- fin app-screen -->
-
-<!-- MODAL INSTRUCTIVO -->
-<div id="modal-instructivo" class="fixed inset-0 z-[100] modal-overlay" style="display:none">
-    <div class="flex items-center justify-center min-h-full p-4">
-        <div class="glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden" style="background:rgba(30,41,59,.97)">
-            <div class="p-4 border-b border-slate-700/50 flex items-center justify-between"><h2 class="text-base font-bold text-white">📖 Instructivo de Uso</h2><button onclick="cerrarModalInstructivo()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 text-sm">✕</button></div>
-            <div class="p-4 overflow-y-auto text-xs text-slate-300 space-y-3" style="max-height:calc(85vh - 60px)">
-                <div class="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20"><h3 class="font-bold text-indigo-400 mb-1">🚀 Inicio rápido</h3><p>1. Clic en <strong>+ Nueva Orden</strong>. 2. Complete <strong>Etapa 1: Ingreso</strong>.</p></div>
-                <div class="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20"><h3 class="font-bold text-blue-400 mb-1">🔧 Flujo</h3><p>Etapas secuenciales: <strong>Ingreso → Operativa → Administración → Entrega</strong>. Si se detiene, usar derivación.</p></div>
-                <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20"><h3 class="font-bold text-emerald-400 mb-1">👥 Personal</h3><p>Solo el <strong>Administrador</strong> puede gestionar personal y categorías.</p></div>
-                <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20"><h3 class="font-bold text-amber-400 mb-1">📊 Informes</h3><p><strong>Exportar Excel</strong> genera informe completo.</p></div>
-                <div class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20"><h3 class="font-bold text-purple-400 mb-1">🔄 Tiempo real</h3><p>Los datos se sincronizan automáticamente entre todos los usuarios conectados.</p></div>
-                <div class="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20"><h3 class="font-bold text-red-400 mb-1">🔐 Roles</h3><p><strong>Administrador</strong>: control total. <strong>Operador</strong>: carga datos pero no puede eliminar órdenes ni gestionar personal/categorías.</p></div>
-            </div>
-        </div>
-    </div>
 </div>
 
-<!-- MODAL PERSONAL (solo admin) -->
-<div id="modal-personal" class="fixed inset-0 z-[100] modal-overlay" style="display:none">
+<!-- MODALS -->
+<div id="modal-instructivo" class="fixed inset-0 z-[100] modal-overlay" style="display:none"><div class="flex items-center justify-center min-h-full p-4"><div class="glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden" style="background:rgba(30,41,59,.97)"><div class="p-4 border-b border-slate-700/50 flex items-center justify-between"><h2 class="text-base font-bold text-white">📖 Instructivo</h2><button onclick="cerrarModalInstructivo()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 text-sm">✕</button></div><div class="p-4 overflow-y-auto text-xs text-slate-300 space-y-3" style="max-height:calc(85vh-60px)">
+<div class="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20"><h3 class="font-bold text-indigo-400 mb-1">🚀 Inicio</h3><p>Clic en + Nueva Orden y completá Etapa 1.</p></div>
+<div class="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20"><h3 class="font-bold text-blue-400 mb-1">🔧 Flujo</h3><p>Ingreso → Operativa → Administración → Entrega. Secuencial.</p></div>
+<div class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20"><h3 class="font-bold text-purple-400 mb-1">✏️ Editar</h3><p>Solo Admin puede editar las 4 tarjetas con el botón "Editar".</p></div>
+<div class="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20"><h3 class="font-bold text-red-400 mb-1">🛑 Stop</h3><p>Cualquier usuario puede detener una tarea con el botón rojo STOP. Se registra quién detuvo, la fecha/hora, el motivo y opcionalmente a quién se sugiere contactar.</p></div>
+<div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20"><h3 class="font-bold text-amber-400 mb-1">📄 PDF</h3><p>Informe Gerente genera PDF profesional con todos los datos incluidos los STOP.</p></div>
+<div class="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20"><h3 class="font-bold text-cyan-400 mb-1">🔐 Roles</h3><p>Admin: control total. Operador: solo carga datos. Ambos pueden usar STOP.</p></div>
+<div class="p-2.5 rounded-xl bg-green-500/10 border border-green-500/20"><h3 class="font-bold text-green-400 mb-1">👥 Personal</h3><p>Solo Admin puede gestionar categorías y personal desde el botón 👥. Se pueden crear, renombrar y eliminar categorías. Se pueden agregar, editar (nombre y categoría) y eliminar personas.</p></div>
+</div></div></div></div>
+
+<div id="modal-personal" class="fixed inset-0 z-[100] modal-overlay" style="display:none"><div class="flex items-center justify-center min-h-full p-4"><div class="glass-card rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col" style="background:rgba(30,41,59,.97);max-height:90vh"><div class="p-4 border-b border-slate-700/50 flex items-center justify-between flex-shrink-0"><div class="flex items-center gap-2"><h2 class="text-base font-bold text-white">👥 Gestión de Personal y Categorías</h2><span class="badge-role bg-amber-500/15 text-amber-400 border border-amber-500/20">Solo Admin</span></div><button onclick="cerrarModalPersonal()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 text-sm">✕</button></div><div class="p-4 space-y-4 overflow-y-auto" style="flex:1 1 auto;min-height:0">
+<div class="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+    <h3 class="text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1.5">📁 Agregar Nueva Categoría</h3>
+    <div class="flex gap-2">
+        <input type="text" id="new-categoria" class="input-glass flex-1 px-3 py-2 rounded-lg text-xs" placeholder="Nombre de la nueva categoría...">
+        <button onclick="agregarCategoria()" class="btn-primary px-4 py-2 rounded-lg text-white text-xs font-bold">＋ Crear</button>
+    </div>
+</div>
+<div id="lista-categorias-personal"></div>
+</div></div></div></div>
+
+<!-- MODAL STOP -->
+<div id="modal-stop" class="fixed inset-0 z-[100] modal-overlay" style="display:none">
     <div class="flex items-center justify-center min-h-full p-4">
-        <div class="glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden" style="background:rgba(30,41,59,.97)">
-            <div class="p-4 border-b border-slate-700/50 flex items-center justify-between"><h2 class="text-base font-bold text-white">👥 Gestión de Personal y Categorías</h2><button onclick="cerrarModalPersonal()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 text-sm">✕</button></div>
-            <div class="p-4 space-y-3 overflow-y-auto" style="max-height:calc(85vh - 60px)">
-                <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 space-y-2">
-                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Categorías</h3>
-                    <div class="flex gap-2"><input type="text" id="new-categoria" class="input-glass flex-1 px-2.5 py-1.5 rounded-lg text-xs" placeholder="Nueva categoría..."><button onclick="agregarCategoria()" class="btn-primary px-3 py-1.5 rounded-lg text-white text-xs font-semibold">+</button></div>
-                    <div id="lista-categorias" class="space-y-1"></div>
-                </div>
-                <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 space-y-2">
-                    <h3 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Agregar Persona</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <input type="text" id="new-person-name" class="input-glass px-2.5 py-1.5 rounded-lg text-xs" placeholder="Nombre y Apellido">
-                        <select id="new-person-role" class="input-glass px-2.5 py-1.5 rounded-lg text-xs"><option value="">-- Categoría --</option></select>
-                        <button onclick="agregarPersona()" class="btn-primary px-3 py-1.5 rounded-lg text-white text-xs font-semibold">+ Agregar</button>
+        <div class="glass-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" style="background:rgba(30,41,59,.97)">
+            <div class="p-4 border-b border-red-500/30 flex items-center justify-between" style="background:rgba(239,68,68,.08)">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-white border-3 border-red-500 flex items-center justify-center" style="border:3px solid #dc2626">
+                        <div class="w-5 h-5 rounded-full flex items-center justify-center" style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+                            <span style="color:white;font-size:5px;font-weight:900;letter-spacing:.2px">STOP</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-red-400">DETENER TAREA</h2>
+                        <p id="stop-card-label" class="text-[10px] text-slate-500"></p>
                     </div>
                 </div>
-                <div id="lista-personal" class="space-y-2"></div>
+                <button onclick="cerrarModalStop()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-slate-400 text-sm">✕</button>
+            </div>
+            <div class="p-4 space-y-3">
+                <!-- Quien detiene -->
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-1 font-semibold uppercase">¿Quién detiene la tarea?</label>
+                    <select id="stop-quien" class="input-glass w-full px-3 py-2 rounded-lg text-xs">
+                        <option value="">-- Seleccione su nombre --</option>
+                    </select>
+                </div>
+                <!-- Fecha y hora auto -->
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-1 font-semibold uppercase">Fecha y hora del Stop</label>
+                    <div id="stop-fecha" class="input-glass px-3 py-2 rounded-lg text-xs" style="opacity:.7;cursor:not-allowed"></div>
+                </div>
+                <!-- Motivo -->
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-1 font-semibold uppercase">Motivo del Stop</label>
+                    <textarea id="stop-motivo" class="input-glass w-full px-3 py-2 rounded-lg text-xs resize-none" rows="3" placeholder="Describa brevemente por qué se detiene esta tarea..."></textarea>
+                </div>
+                <!-- Sugerir usuario -->
+                <div>
+                    <label class="block text-[10px] text-slate-400 mb-1 font-semibold uppercase">Sugerir participación de (opcional)</label>
+                    <select id="stop-sugerido" class="input-glass w-full px-3 py-2 rounded-lg text-xs">
+                        <option value="">-- Ninguno --</option>
+                    </select>
+                </div>
+                <!-- Error -->
+                <div id="stop-error" class="hidden p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>
+                <!-- Botones -->
+                <div class="flex gap-2 pt-1">
+                    <button onclick="confirmarStop()" class="btn-danger flex-1 py-2.5 rounded-lg text-white font-bold text-xs shadow-lg">🛑 Confirmar Stop</button>
+                    <button onclick="cerrarModalStop()" class="flex-1 py-2.5 rounded-lg text-slate-400 font-semibold text-xs bg-slate-700 hover:bg-slate-600">Cancelar</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- STICKY FOOTER -->
-<footer class="sticky-footer fixed bottom-0 left-0 right-0 z-50 px-4 sm:px-6 py-2">
-    <div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-        <div class="flex-1 w-full sm:max-w-sm">
-            <div class="flex items-center justify-between mb-1"><span class="text-[10px] text-slate-500 font-medium" id="footer-orden-label">Sin orden activa</span><span id="progress-text" class="text-[10px] font-bold text-indigo-400">0%</span></div>
-            <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden"><div id="progress-bar" class="progress-bar-fill h-full" style="width:0%"></div></div>
-        </div>
-        <div class="flex items-center gap-2">
-            <span class="text-[10px] text-slate-600 hidden sm:block" id="footer-ordenes-count">0 órdenes</span>
-            <div class="relative tooltip-trigger">
-                <div id="status-badge" class="px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-slate-700/50 text-slate-500 border border-slate-600/30">[ SIN ORDEN ]</div>
-                <div id="status-tooltip" class="tooltip-custom mb-2 p-3 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl hidden">
-                    <p id="tooltip-motivo" class="text-xs text-slate-300"></p>
-                    <p id="tooltip-responsable" class="text-xs text-slate-400 mt-1"></p>
-                    <p id="tooltip-fecha" class="text-[10px] text-slate-500 mt-1"></p>
-                </div>
-            </div>
-        </div>
-    </div>
-</footer>
+<!-- FOOTER -->
+<footer class="sticky-footer fixed bottom-0 left-0 right-0 z-50 px-4 sm:px-6 py-2"><div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2"><div class="flex-1 w-full sm:max-w-sm"><div class="flex items-center justify-between mb-1"><span class="text-[10px] text-slate-500" id="footer-orden-label">Sin orden</span><span id="progress-text" class="text-[10px] font-bold text-indigo-400">0%</span></div><div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden"><div id="progress-bar" class="progress-bar-fill h-full" style="width:0%"></div></div></div><div class="flex items-center gap-2"><span class="text-[10px] text-slate-600 hidden sm:block" id="footer-ordenes-count">0</span><div class="relative tooltip-trigger"><div id="status-badge" class="px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-slate-700/50 text-slate-500 border border-slate-600/30">[ SIN ORDEN ]</div><div id="status-tooltip" class="tooltip-custom mb-2 p-3 rounded-xl bg-slate-800 border border-slate-700 shadow-2xl hidden"><p id="tooltip-motivo" class="text-xs text-slate-300"></p><p id="tooltip-responsable" class="text-xs text-slate-400 mt-1"></p><p id="tooltip-fecha" class="text-[10px] text-slate-500 mt-1"></p></div></div></div></div></footer>
 
 <script>
-// ===================================================================
-//  FIREBASE - CONFIGURACIÓN
-//  ⚠️ REEMPLAZÁ ESTOS VALORES CON LOS DE TU PROYECTO FIREBASE
-// ===================================================================
-firebase.initializeApp({
-    apiKey: "AIzaSyDaAjyat9YHkh9ZtgtOjsJKkRcMPRWKPrQ",
-    authDomain: "hidraulica-ensenada.firebaseapp.com",
-    projectId: "hidraulica-ensenada",
-    storageBucket: "hidraulica-ensenada.firebasestorage.app",
-    messagingSenderId: "397788846334",
-    appId: "1:397788846334:web:c7e41597ff538fd6ebadaf"
-});
-const db = firebase.firestore();
+// ===== FIREBASE =====
+firebase.initializeApp({apiKey:"AIzaSyDaAjyat9YHkh9ZtgtOjsJKkRcMPRWKPrQ",authDomain:"hidraulica-ensenada.firebaseapp.com",projectId:"hidraulica-ensenada",storageBucket:"hidraulica-ensenada.firebasestorage.app",messagingSenderId:"397788846334",appId:"1:397788846334:web:c7e41597ff538fd6ebadaf"});
+const db=firebase.firestore();
 
-// ===================================================================
-//  SISTEMA DE USUARIOS Y ROLES
-// ===================================================================
-/*
-  USUARIOS DEL SISTEMA - Modificá esta lista con tus datos reales.
-  rol: "admin"    → Control total (crear, editar, eliminar, gestionar personal)
-  rol: "operador" → Solo puede cargar y modificar datos de órdenes
-*/
-const USUARIOS = [
-    { usuario: 'admin',     password: 'admin2024',   nombre: 'Administrador',   rol: 'admin' },
-    { usuario: 'recepcion', password: 'recep2024',   nombre: 'Recepción',       rol: 'operador' },
-    { usuario: 'taller',    password: 'taller2024',  nombre: 'Taller',          rol: 'operador' },
-    { usuario: 'oficina',   password: 'oficina2024', nombre: 'Oficina',         rol: 'operador' },
-    { usuario: 'entrega',   password: 'entrega2024', nombre: 'Entrega',         rol: 'operador' }
+// ===== USUARIOS =====
+const USUARIOS=[
+    {usuario:'admin',password:'admin2024',nombre:'Administrador',rol:'admin'},
+    {usuario:'recepcion',password:'recep2024',nombre:'Recepción',rol:'operador'},
+    {usuario:'taller',password:'taller2024',nombre:'Taller',rol:'operador'},
+    {usuario:'oficina',password:'oficina2024',nombre:'Oficina',rol:'operador'},
+    {usuario:'entrega',password:'entrega2024',nombre:'Entrega',rol:'operador'}
 ];
+let currentUser=null,editingCard={};
+function esAdmin(){return currentUser&&currentUser.rol==='admin'}
 
-let currentUser = null;
-function esAdmin(){ return currentUser && currentUser.rol === 'admin' }
+function intentarLogin(){const u=document.getElementById('login-user').value.trim().toLowerCase(),p=document.getElementById('login-pass').value,f=USUARIOS.find(x=>x.usuario===u&&x.password===p);if(!f){document.getElementById('login-error').textContent='⚠️ Incorrecto';document.getElementById('login-error').classList.remove('hidden');return}currentUser=f;document.getElementById('login-error').classList.add('hidden');document.getElementById('login-screen').style.display='none';document.getElementById('app-screen').style.display='block';const ub=document.getElementById('user-badge');if(esAdmin()){ub.textContent='🛡️ '+currentUser.nombre;ub.className='px-2.5 py-1 rounded-lg text-[10px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/25'}else{ub.textContent='👤 '+currentUser.nombre;ub.className='px-2.5 py-1 rounded-lg text-[10px] font-bold border bg-slate-500/15 text-slate-400 border-slate-500/25'}if(!esAdmin())document.getElementById('btn-personal').style.display='none';cargarDatos()}
+function cerrarSesion(){if(!confirm('¿Salir?'))return;currentUser=null;activeOrdenId=null;editingCard={};document.getElementById('app-screen').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-user').value='';document.getElementById('login-pass').value=''}
 
-function intentarLogin(){
-    const u=document.getElementById('login-user').value.trim().toLowerCase();
-    const p=document.getElementById('login-pass').value;
-    const found=USUARIOS.find(x=>x.usuario===u && x.password===p);
-    if(!found){document.getElementById('login-error').textContent='⚠️ Usuario o contraseña incorrectos';document.getElementById('login-error').classList.remove('hidden');return}
-    currentUser=found;
-    document.getElementById('login-error').classList.add('hidden');
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app-screen').style.display='block';
-    const ub=document.getElementById('user-badge');
-    if(esAdmin()){ub.textContent='🛡️ '+currentUser.nombre+' (Admin)';ub.className='px-2.5 py-1 rounded-lg text-[10px] font-bold border bg-amber-500/15 text-amber-400 border-amber-500/25'}
-    else{ub.textContent='👤 '+currentUser.nombre;ub.className='px-2.5 py-1 rounded-lg text-[10px] font-bold border bg-slate-500/15 text-slate-400 border-slate-500/25'}
-    if(!esAdmin())document.getElementById('btn-personal').style.display='none';
-    cargarDatos();
-}
+// ===== DATA =====
+let categorias=['COMPRAS','VENTAS','ADMINISTRACION','GERENTE','MECANICOS','RECEPCION','TORNERO','ELECTRICISTA','ENCARGADO','LOGISTICA'],personal=[{id:1,nombre:'Sosa Nahuel',rol:'MECANICOS'},{id:2,nombre:'García Marcos',rol:'MECANICOS'},{id:3,nombre:'López Darío',rol:'MECANICOS'},{id:4,nombre:'Esteban Pérez',rol:'COMPRAS'},{id:5,nombre:'Martín Torres',rol:'COMPRAS'},{id:6,nombre:'Reinoso Rosana',rol:'ADMINISTRACION'},{id:7,nombre:'Vega Luciana',rol:'ADMINISTRACION'},{id:8,nombre:'Campos Julia',rol:'RECEPCION'},{id:9,nombre:'Díaz Roberto',rol:'TORNERO'},{id:10,nombre:'Acosta Fabián',rol:'ELECTRICISTA'},{id:11,nombre:'Peralta Hugo',rol:'ENCARGADO'},{id:12,nombre:'Bravo Sergio',rol:'LOGISTICA'}],nextPersonId=13,ordenes=[],nextOrdenId=1,activeOrdenId=null;
 
-function cerrarSesion(){
-    if(!confirm('¿Cerrar sesión?'))return;
-    currentUser=null;activeOrdenId=null;
-    document.getElementById('app-screen').style.display='none';
-    document.getElementById('login-screen').style.display='flex';
-    document.getElementById('login-user').value='';
-    document.getElementById('login-pass').value='';
-}
+// ===== STOP STATE =====
+let stopTargetOrdenId=null, stopTargetCard=null;
 
-// ===================================================================
-//  DATA
-// ===================================================================
-let categorias=['COMPRAS','VENTAS','ADMINISTRACION','GERENTE','MECANICOS','RECEPCION','TORNERO','ELECTRICISTA','ENCARGADO','LOGISTICA'];
-let personal=[
-    {id:1,nombre:'Sosa Nahuel',rol:'MECANICOS'},{id:2,nombre:'García Marcos',rol:'MECANICOS'},{id:3,nombre:'López Darío',rol:'MECANICOS'},
-    {id:4,nombre:'Esteban Pérez',rol:'COMPRAS'},{id:5,nombre:'Martín Torres',rol:'COMPRAS'},
-    {id:6,nombre:'Reinoso Rosana',rol:'ADMINISTRACION'},{id:7,nombre:'Vega Luciana',rol:'ADMINISTRACION'},
-    {id:8,nombre:'Campos Julia',rol:'RECEPCION'},{id:9,nombre:'Díaz Roberto',rol:'TORNERO'},
-    {id:10,nombre:'Acosta Fabián',rol:'ELECTRICISTA'},{id:11,nombre:'Peralta Hugo',rol:'ENCARGADO'},{id:12,nombre:'Bravo Sergio',rol:'LOGISTICA'}
-];
-let nextPersonId=13;let ordenes=[];let nextOrdenId=1;let activeOrdenId=null;
+// ===== SYNC =====
+function guardarDatos(){db.collection('config').doc('categorias').set({data:categorias}).catch(e=>0);db.collection('config').doc('personal').set({data:personal,nextId:nextPersonId}).catch(e=>0);db.collection('config').doc('ordenes').set({data:ordenes,nextId:nextOrdenId}).catch(e=>0);localStorage.setItem('mtr_c',JSON.stringify(categorias));localStorage.setItem('mtr_p',JSON.stringify(personal));localStorage.setItem('mtr_o',JSON.stringify(ordenes))}
+async function cargarDatos(){try{const[c,p,o]=await Promise.all([db.collection('config').doc('categorias').get(),db.collection('config').doc('personal').get(),db.collection('config').doc('ordenes').get()]);if(c.exists)categorias=c.data().data;if(p.exists){personal=p.data().data;nextPersonId=p.data().nextId||13}if(o.exists){ordenes=o.data().data;nextOrdenId=o.data().nextId||1}mostrarConexion(true)}catch(e){categorias=JSON.parse(localStorage.getItem('mtr_c'))||categorias;personal=JSON.parse(localStorage.getItem('mtr_p'))||personal;ordenes=JSON.parse(localStorage.getItem('mtr_o'))||ordenes;nextPersonId=personal.length?Math.max(...personal.map(p=>p.id))+1:1;nextOrdenId=ordenes.length?Math.max(...ordenes.map(o=>o.id))+1:1;mostrarConexion(false)}// Migrate old orders missing stops array
+ordenes.forEach(o=>{if(!o.stops)o.stops=[];});updateFooter();renderTabs();if(ordenes.length){activeOrdenId=ordenes[ordenes.length-1].id;seleccionarOrden(activeOrdenId)}escucharCambios()}
+function escucharCambios(){db.collection('config').doc('ordenes').onSnapshot(doc=>{if(doc.exists){const d=doc.data();if(JSON.stringify(d.data)!==JSON.stringify(ordenes)){ordenes=d.data;ordenes.forEach(o=>{if(!o.stops)o.stops=[];});nextOrdenId=d.nextId||nextOrdenId;renderTabs();if(activeOrdenId&&getOrden(activeOrdenId))renderOrden(activeOrdenId);updateFooter();actualizarEtapas()}}});db.collection('config').doc('personal').onSnapshot(doc=>{if(doc.exists){personal=doc.data().data;nextPersonId=doc.data().nextId||nextPersonId;if(activeOrdenId)renderOrden(activeOrdenId)}});db.collection('config').doc('categorias').onSnapshot(doc=>{if(doc.exists)categorias=doc.data().data})}
+function mostrarConexion(ok){const el=document.getElementById('connection-status');el.classList.remove('hidden');el.textContent=ok?'🟢 Conectado':'🔴 Offline';el.className=`fixed top-16 right-4 z-50 px-3 py-1.5 rounded-lg text-[10px] font-bold ${ok?'bg-green-500/15 text-green-400 border border-green-500/25':'bg-red-500/15 text-red-400 border border-red-500/25'}`;setTimeout(()=>el.classList.add('hidden'),3000)}
 
-// ===================================================================
-//  FIREBASE: GUARDAR, CARGAR, ESCUCHAR
-// ===================================================================
-function guardarDatos(){
-    db.collection('config').doc('categorias').set({data:categorias}).catch(e=>console.warn('Error cat:',e));
-    db.collection('config').doc('personal').set({data:personal,nextId:nextPersonId}).catch(e=>console.warn('Error per:',e));
-    db.collection('config').doc('ordenes').set({data:ordenes,nextId:nextOrdenId}).catch(e=>console.warn('Error ord:',e));
-    localStorage.setItem('mtr_categorias',JSON.stringify(categorias));
-    localStorage.setItem('mtr_personal',JSON.stringify(personal));
-    localStorage.setItem('mtr_ordenes',JSON.stringify(ordenes));
-}
-
-async function cargarDatos(){
-    try{
-        const[catDoc,perDoc,ordDoc]=await Promise.all([db.collection('config').doc('categorias').get(),db.collection('config').doc('personal').get(),db.collection('config').doc('ordenes').get()]);
-        if(catDoc.exists)categorias=catDoc.data().data;
-        if(perDoc.exists){personal=perDoc.data().data;nextPersonId=perDoc.data().nextId||13}
-        if(ordDoc.exists){ordenes=ordDoc.data().data;nextOrdenId=ordDoc.data().nextId||1}
-        mostrarConexion(true);
-    }catch(e){
-        console.warn('Offline, usando local');
-        categorias=JSON.parse(localStorage.getItem('mtr_categorias'))||categorias;
-        personal=JSON.parse(localStorage.getItem('mtr_personal'))||personal;
-        ordenes=JSON.parse(localStorage.getItem('mtr_ordenes'))||ordenes;
-        nextPersonId=personal.length?Math.max(...personal.map(p=>p.id))+1:1;
-        nextOrdenId=ordenes.length?Math.max(...ordenes.map(o=>o.id))+1:1;
-        mostrarConexion(false);
-    }
-    updateFooter();renderTabs();
-    if(ordenes.length){activeOrdenId=ordenes[ordenes.length-1].id;seleccionarOrden(activeOrdenId)}
-    escucharCambios();
-}
-
-function escucharCambios(){
-    db.collection('config').doc('ordenes').onSnapshot(doc=>{if(doc.exists){const d=doc.data();if(JSON.stringify(d.data)!==JSON.stringify(ordenes)){ordenes=d.data;nextOrdenId=d.nextId||nextOrdenId;renderTabs();if(activeOrdenId&&getOrden(activeOrdenId))renderOrden(activeOrdenId);updateFooter();actualizarEtapas()}}});
-    db.collection('config').doc('personal').onSnapshot(doc=>{if(doc.exists){personal=doc.data().data;nextPersonId=doc.data().nextId||nextPersonId;if(activeOrdenId)renderOrden(activeOrdenId)}});
-    db.collection('config').doc('categorias').onSnapshot(doc=>{if(doc.exists)categorias=doc.data().data});
-}
-
-function mostrarConexion(ok){const el=document.getElementById('connection-status');el.classList.remove('hidden');if(ok){el.textContent='🟢 Conectado';el.className='fixed top-16 right-4 z-50 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-green-500/15 text-green-400 border border-green-500/25'}else{el.textContent='🔴 Sin conexión';el.className='fixed top-16 right-4 z-50 px-3 py-1.5 rounded-lg text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/25'}setTimeout(()=>el.classList.add('hidden'),4000)}
-
-// ===================================================================
-//  UTILS
-// ===================================================================
-function getNow(){const n=new Date(),dd=String(n.getDate()).padStart(2,'0'),mm=String(n.getMonth()+1).padStart(2,'0'),yyyy=n.getFullYear(),hh=String(n.getHours()).padStart(2,'0'),min=String(n.getMinutes()).padStart(2,'0');return{fecha:`${dd}/${mm}/${yyyy}`,hora:`${hh}:${min}`,full:`${dd}/${mm}/${yyyy} a las ${hh}:${min} hs`}}
-function formatFP(f){if(!f)return'—';const d=new Date(f);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} a las ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} hs`}
+// ===== UTILS =====
+function getNow(){const n=new Date();return{fecha:`${String(n.getDate()).padStart(2,'0')}/${String(n.getMonth()+1).padStart(2,'0')}/${n.getFullYear()}`,full:`${String(n.getDate()).padStart(2,'0')}/${String(n.getMonth()+1).padStart(2,'0')}/${n.getFullYear()} a las ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')} hs`}}
+function formatFP(f){if(!f)return'—';const d=new Date(f);return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} hs`}
 function getByRol(r){return personal.filter(p=>p.rol===r)}
-function getTaller(){return personal.filter(p=>['MECANICOS','TORNERO','ELECTRICISTA','ENCARGADO'].includes(p.rol))}
-function getGestion(){return personal.filter(p=>['COMPRAS','VENTAS','GERENTE','ADMINISTRACION','LOGISTICA'].includes(p.rol))}
-function buildOpts(list,ph){let h=`<option value="">${ph}</option>`;list.forEach(p=>{h+=`<option value="${p.nombre} - ${p.rol}">${p.nombre} — ${p.rol}</option>`});return h}
-
-// ===== MODALS =====
-function abrirModalInstructivo(){document.getElementById('modal-instructivo').style.display='block'}
-function cerrarModalInstructivo(){document.getElementById('modal-instructivo').style.display='none'}
-function abrirModalPersonal(){if(!esAdmin()){alert('Solo el Administrador puede gestionar personal.');return}document.getElementById('modal-personal').style.display='block';renderCategorias();renderListaPersonal();actualizarSelectRoles()}
-function cerrarModalPersonal(){document.getElementById('modal-personal').style.display='none'}
-
-// ===== CATEGORÍAS (solo admin) =====
-function renderCategorias(){const c=document.getElementById('lista-categorias');let h='';categorias.forEach((cat,i)=>{h+=`<div class="flex items-center justify-between p-1.5 rounded bg-slate-800/30 border border-slate-700/30 mb-1"><span class="text-xs text-slate-300">${cat}</span><div class="flex gap-1"><button onclick="editarCategoria(${i})" class="text-[10px] text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-500/10">✏️</button><button onclick="eliminarCategoria(${i})" class="text-[10px] text-red-400 px-1.5 py-0.5 rounded hover:bg-red-500/10">✕</button></div></div>`});c.innerHTML=h}
-function agregarCategoria(){if(!esAdmin())return;const i=document.getElementById('new-categoria'),n=i.value.trim().toUpperCase();if(!n){alert('Ingrese nombre');return}if(categorias.includes(n)){alert('Ya existe');return}categorias.push(n);guardarDatos();i.value='';renderCategorias();actualizarSelectRoles()}
-function editarCategoria(i){if(!esAdmin())return;const n=prompt('Nuevo nombre:',categorias[i]);if(n&&n.trim()){const v=n.trim().toUpperCase();if(!categorias.includes(v)||categorias[i]===v){categorias[i]=v;guardarDatos();renderCategorias();actualizarSelectRoles();if(activeOrdenId)renderOrden(activeOrdenId)}}}
-function eliminarCategoria(i){if(!esAdmin())return;if(confirm('¿Eliminar?')){categorias.splice(i,1);guardarDatos();renderCategorias();actualizarSelectRoles()}}
-function actualizarSelectRoles(){const s=document.getElementById('new-person-role');s.innerHTML='<option value="">-- Categoría --</option>';categorias.forEach(c=>{s.innerHTML+=`<option value="${c}">${c}</option>`})}
-
-// ===== PERSONAL (solo admin) =====
-function agregarPersona(){if(!esAdmin())return;const n=document.getElementById('new-person-name').value.trim(),r=document.getElementById('new-person-role').value;if(!n||!r){alert('Complete');return}personal.push({id:nextPersonId++,nombre:n,rol:r});document.getElementById('new-person-name').value='';document.getElementById('new-person-role').value='';guardarDatos();renderListaPersonal();if(activeOrdenId)renderOrden(activeOrdenId)}
-function eliminarPersona(id){if(!esAdmin())return;if(!confirm('¿Eliminar?'))return;personal=personal.filter(p=>p.id!==id);guardarDatos();renderListaPersonal();if(activeOrdenId)renderOrden(activeOrdenId)}
-function renderListaPersonal(){const c=document.getElementById('lista-personal');if(!personal.length){c.innerHTML='<p class="text-xs text-slate-500 text-center py-2">Sin personal</p>';return}let h='';categorias.forEach(r=>{const ps=personal.filter(p=>p.rol===r);if(!ps.length)return;h+=`<div class="mb-2"><div class="flex items-center gap-1.5 mb-1"><span class="badge-role bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">${r}</span><span class="text-[10px] text-slate-500">(${ps.length})</span></div>`;ps.forEach(p=>{h+=`<div class="flex items-center justify-between p-1.5 rounded bg-slate-800/40 border border-slate-700/30 mb-1"><span class="text-xs text-slate-300">${p.nombre}</span><button onclick="eliminarPersona(${p.id})" class="text-[10px] text-red-400 px-1.5 py-0.5 rounded hover:bg-red-500/10">✕</button></div>`});h+=`</div>`});c.innerHTML=h}
-
-// ===== ÓRDENES =====
-function crearNuevaOrden(){const id=nextOrdenId++,ts=getNow();ordenes.push({id,numero:String(id).padStart(4,'0'),createdAt:ts.full,creadaPor:currentUser?currentUser.nombre:'—',card1:{complete:false,cliente:'',vehiculo:'',patente:'',problema:'',timestamp:''},card2:{complete:false,diagnosticoGuardado:false,mecanico:'',diagnostico:'',diagnosticoTimestamp:'',estado:'en_proceso',trabajos:'',timestamps:[],detenida:false,detenidaMotivo:'',detenidaResponsable:'',detenidaFecha:'',bannerFacturacion:'',finalTimestamp:''},card3:{complete:false,facturado:null,motivoNoFactura:'',timestamp:''},card4:{complete:false,retiraNombre:'',retiraDni:'',conformidad:false,personalEntrega:'',fechaEntregaPactada:'',timestamp:''},finalizada:false});guardarDatos();activeOrdenId=id;renderTabs();renderOrden(id);updateFooter();actualizarEtapas()}
-function seleccionarOrden(id){activeOrdenId=id;renderTabs();renderOrden(id);updateFooter();actualizarEtapas()}
-function getOrden(id){return ordenes.find(o=>o.id===id)}
-function getActiveOrden(){return activeOrdenId?getOrden(activeOrdenId):null}
-function eliminarOrden(id,ev){ev.stopPropagation();if(!esAdmin()){alert('Solo el Administrador puede eliminar órdenes.');return}if(!confirm('¿Eliminar orden?'))return;ordenes=ordenes.filter(o=>o.id!==id);guardarDatos();if(activeOrdenId===id)activeOrdenId=ordenes.length?ordenes[ordenes.length-1].id:null;renderTabs();if(activeOrdenId)renderOrden(activeOrdenId);else{document.getElementById('orden-container').innerHTML='<div class="flex items-center justify-center h-52 text-slate-600"><div class="text-center"><p class="text-4xl mb-2">🔧</p><p class="text-sm">Presione <strong class="text-indigo-400">"+ Nueva Orden"</strong></p></div></div>';document.getElementById('notificaciones-container').innerHTML='<p class="text-xs text-slate-500 italic">Seleccione una orden</p>';document.getElementById('etapas-indicator').style.display='none'}updateFooter();actualizarEtapas()}
-function getProgress(o){let p=0;if(o.card1.complete)p+=25;if(o.card2.complete)p+=25;if(o.card3.complete)p+=25;if(o.card4.complete)p+=25;return p}
-function getStatusColor(o){if(o.finalizada)return'#06b6d4';if(o.card2.detenida)return'#ef4444';return'#22c55e'}
-function getStatusText(o){if(o.finalizada)return'FINALIZADA';if(o.card2.detenida)return'DETENIDA';return'EN PROCESO'}
-
-// ===== TABS =====
-function renderTabs(){const c=document.getElementById('ordenes-tabs');if(!ordenes.length){c.innerHTML='';return}let h='';ordenes.forEach(o=>{const a=o.id===activeOrdenId,col=getStatusColor(o),pr=getProgress(o);h+=`<div class="orden-tab flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg flex-shrink-0 ${a?'active':''}" onclick="seleccionarOrden(${o.id})"><div class="tab-dot" style="background:${col}"></div><div class="flex flex-col"><span class="text-[10px] font-bold text-white whitespace-nowrap">OR-${o.numero}</span><span class="text-[9px] text-slate-500 whitespace-nowrap">${o.card1.complete?o.card1.cliente||'—':'Nueva'} · ${pr}%</span></div>${esAdmin()&&!o.card4.complete?`<button onclick="eliminarOrden(${o.id},event)" class="ml-0.5 text-slate-600 hover:text-red-400 text-[10px]">✕</button>`:''}</div>`});c.innerHTML=h}
-
-// ===== ETAPAS =====
-function actualizarEtapas(){const o=getActiveOrden(),ind=document.getElementById('etapas-indicator');if(!o){ind.style.display='none';return}ind.style.display='flex';[{id:1,ok:o.card1.complete,bl:false},{id:2,ok:o.card2.complete,bl:!o.card1.complete},{id:3,ok:o.card3.complete,bl:!o.card2.complete},{id:4,ok:o.card4.complete,bl:!o.card3.complete}].forEach(e=>{const el=document.getElementById(`etapa-${e.id}`);el.classList.remove('active','current');if(e.ok){el.style.color='#22c55e';el.style.borderColor='rgba(34,197,94,.3)';el.style.background='rgba(34,197,94,.15)'}else if(e.bl){el.style.color='#64748b';el.style.borderColor='rgba(100,116,139,.3)';el.style.background='rgba(100,116,139,.15)'}else{el.style.color='#ef4444';el.style.borderColor='rgba(239,68,68,.3)';el.style.background='rgba(239,68,68,.15)';el.classList.add('active','current')}})}
-
-// ===== NOTIFICACIONES =====
-function renderNotificaciones(o){const c=document.getElementById('notificaciones-container');if(!o){c.innerHTML='<p class="text-xs text-slate-500 italic">Seleccione una orden</p>';return}let items=[];if(o.card1.timestamp)items.push({etapa:'1 · INGRESO',text:o.card1.timestamp,color:o.card1.complete?'green':'red'});if(o.card2.diagnosticoTimestamp)items.push({etapa:'2 · OPERATIVA',text:o.card2.diagnosticoTimestamp,color:o.card2.complete?'green':'indigo'});o.card2.timestamps.forEach(t=>items.push({etapa:'2 · OPERATIVA',text:t.text,color:o.card2.complete?'green':t.color}));if(o.card2.bannerFacturacion)items.push({etapa:'2 · OPERATIVA',text:`📢 Aviso Administración — ${o.card2.bannerFacturacion}`,color:o.card2.complete?'green':'amber'});if(o.card2.finalTimestamp)items.push({etapa:'2 · OPERATIVA',text:o.card2.finalTimestamp,color:'green'});if(o.card3.timestamp)items.push({etapa:'3 · ADMIN',text:o.card3.timestamp,color:o.card3.complete?'green':'indigo'});if(o.card3.motivoNoFactura&&!o.card3.complete)items.push({etapa:'3 · ADMIN',text:`⛔ Sin facturar: ${o.card3.motivoNoFactura}`,color:'red'});if(o.card4.timestamp)items.push({etapa:'4 · ENTREGA',text:o.card4.timestamp,color:o.finalizada?'cyan':'green'});if(!items.length){c.innerHTML='<p class="text-xs text-slate-500 italic">Sin notificaciones</p>';return}let h='';items.forEach(it=>{h+=`<div class="notif-${it.color} pl-3 py-2.5 pr-2 mb-2 rounded-r-lg bg-slate-800/30 fade-in"><div class="text-[11px] font-bold opacity-80 mb-1">${it.etapa}</div><div class="text-[13px] leading-snug font-medium">${it.text}</div></div>`});c.innerHTML=h}
-
-// ===== RENDER ORDEN =====
-function renderOrden(id){const o=getOrden(id);if(!o)return;const mec=getByRol('MECANICOS'),ges=getGestion(),tal=getTaller(),todos=personal,cn=document.getElementById('orden-container');
-function sb(c,b){return c?'status-bar-green':(b?'status-bar-gray':'status-bar-red')}
-function nb(c,b){return c?'bg-green-500/20 text-green-400':(b?'bg-slate-500/20 text-slate-400':'bg-red-500/20 text-red-400')}
-function bb(c,b){return c?'bg-green-500/15 text-green-400 border-green-500/20':(b?'bg-slate-500/15 text-slate-400 border-slate-500/20':'bg-red-500/15 text-red-400 border-red-500/20')}
-function bt(c,b){return c?'Completado':(b?'Bloqueado':'Pendiente')}
-cn.innerHTML=`<div class="mb-3 flex items-center gap-2"><h2 class="text-sm font-bold text-white">OR-${o.numero}</h2><span class="text-[10px] text-slate-500">${o.createdAt}${o.creadaPor?' · por '+o.creadaPor:''}</span></div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-<div class="glass-card rounded-xl shadow-lg overflow-hidden"><div class="h-1 ${sb(o.card1.complete,false)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card1.complete,false)}">1</div><div><div class="text-xs font-bold text-white">Ingreso</div><div class="text-[9px] text-slate-500">Recepción</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card1.complete,false)}">${bt(o.card1.complete,false)}</span></div><div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Cliente</label><input data-field="c1-cliente" value="${o.card1.cliente}" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Cliente..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Vehículo</label><input data-field="c1-vehiculo" value="${o.card1.vehiculo}" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Unidad..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Patente</label><input data-field="c1-patente" value="${o.card1.patente}" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Patente..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Problema</label><textarea data-field="c1-problema" ${o.card1.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Descripción...">${o.card1.problema}</textarea></div></div><div data-error="c1-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>${!o.card1.complete?`<button onclick="guardarIngreso(${o.id})" class="btn-primary w-full mt-3 py-2 rounded-lg text-white font-semibold text-xs">💾 Guardar Ingreso</button>`:''}</div></div>
-<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card1.complete?'blocked':''}"><div class="h-1 ${sb(o.card2.complete,!o.card1.complete)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card2.complete,!o.card1.complete)}">2</div><div><div class="text-xs font-bold text-white">Operativa</div><div class="text-[9px] text-slate-500">Mecánico</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card2.complete,!o.card1.complete)}">${bt(o.card2.complete,!o.card1.complete)}</span></div><div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Mecánico</label><select data-field="c2-mecanico" ${o.card2.diagnosticoGuardado||o.card2.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(mec,'-- Mecánico --')}</select></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Diagnóstico</label><textarea data-field="c2-diagnostico" ${o.card2.diagnosticoGuardado||o.card2.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Diagnóstico...">${o.card2.diagnostico}</textarea></div>${!o.card2.diagnosticoGuardado&&!o.card2.complete?`<button onclick="guardarDiagnostico(${o.id})" class="btn-primary w-full py-1.5 rounded-lg text-white font-semibold text-xs">📋 Guardar Diagnóstico</button>`:''}</div>${o.card2.diagnosticoGuardado&&!o.card2.complete?`<div class="mt-3 space-y-2"><label class="block text-[10px] text-slate-400 mb-0.5">Estado</label><select data-field="c2-estado" onchange="cambiarEstado(${o.id})" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs font-semibold" style="color:${o.card2.estado==='en_proceso'?'#22c55e':o.card2.estado==='parado'?'#ef4444':'#e2e8f0'}"><option value="en_proceso" ${o.card2.estado==='en_proceso'?'selected':''}>🟢 En Proceso</option><option value="terminado" ${o.card2.estado==='terminado'?'selected':''}>✅ Terminado</option><option value="parado" ${o.card2.estado==='parado'?'selected':''}>🔴 Parado</option></select><div data-section="c2-terminado" class="${o.card2.estado==='terminado'?'':'hidden'} space-y-2"><textarea data-field="c2-trabajos" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Trabajos...">${o.card2.trabajos}</textarea><button onclick="finalizarOperativa(${o.id})" class="btn-success w-full py-2 rounded-lg text-white font-semibold text-xs">✅ Finalizar</button></div><div data-section="c2-derivacion" class="${o.card2.estado==='parado'&&!o.card2.detenida?'':'hidden'}"><div class="p-2 rounded-lg bg-red-500/10 border border-red-500/20 space-y-2"><div class="text-[10px] font-bold text-red-400">⚠️ DERIVACIÓN</div><select data-field="c2-causal" onchange="cambiarCausal()" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"><option value="">-- Causal --</option><option value="Falta de Repuesto">Falta de Repuesto</option><option value="Se envió al Tornero">Al Tornero</option><option value="Se envió al Electricista">Al Electricista</option><option value="Se envió a Rectificación">A Rectificación</option><option value="Otro motivo">Otro</option></select><div data-section="c2-causal-otro" class="hidden"><input data-field="c2-causal-otro-txt" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Detalle..."></div><select data-field="c2-persona-designada" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(ges,'-- Responsable --')}</select><button onclick="confirmarDerivacion(${o.id})" class="btn-danger w-full py-1.5 rounded-lg text-white font-semibold text-xs">🚨 Confirmar</button></div></div><div data-section="c2-destrabe" class="${o.card2.detenida?'':'hidden'}"><div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2"><div class="text-[10px] font-bold text-amber-400">🔧 DESTRABE</div><p class="text-xs text-white font-semibold">¿${o.card2.detenidaResponsable||'—'}, resuelto?</p><div class="flex gap-4"><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="destrabe-${o.id}" value="si" class="radio-custom" onchange="cambiarDestrabe(${o.id})"><span class="text-xs text-green-400">SÍ</span></label><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="destrabe-${o.id}" value="no" class="radio-custom" onchange="cambiarDestrabe(${o.id})"><span class="text-xs text-red-400">NO</span></label></div><div data-section="c2-destrabe-si" class="hidden space-y-1.5"><select data-field="c2-entrega-pedido" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(tal,'-- Entregado a --')}</select><button onclick="guardarEntrega(${o.id})" class="btn-success w-full py-1.5 rounded-lg text-white font-semibold text-xs">✅ Guardar</button></div><div data-section="c2-destrabe-no" class="hidden space-y-1.5"><input type="date" data-field="c2-destrabe-fecha" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"><textarea data-field="c2-destrabe-motivo" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Motivo..."></textarea><button onclick="guardarRetraso(${o.id})" class="btn-warning w-full py-1.5 rounded-lg text-white font-semibold text-xs">📅 Registrar</button></div></div></div></div>`:''}<div data-error="c2-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div></div></div>
-<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card2.complete?'blocked':''}"><div class="h-1 ${sb(o.card3.complete,!o.card2.complete)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card3.complete,!o.card2.complete)}">3</div><div><div class="text-xs font-bold text-white">Administración</div><div class="text-[9px] text-slate-500">Oficina</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card3.complete,!o.card2.complete)}">${bt(o.card3.complete,!o.card2.complete)}</span></div><div class="mb-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-1"><div><span class="text-[9px] text-slate-500 uppercase">Diagnóstico:</span><p class="text-[10px] text-slate-300">${o.card2.diagnostico||'—'}</p></div><div class="border-t border-slate-700/50 pt-1"><span class="text-[9px] text-slate-500 uppercase">Trabajos:</span><p class="text-[10px] text-slate-300">${o.card2.trabajos||'—'}</p></div></div>${!o.card3.complete?`<div class="space-y-2"><label class="block text-[10px] text-slate-400 mb-1">¿Se facturó?</label><div class="flex gap-4"><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="factura-${o.id}" value="si" class="radio-custom" ${o.card3.facturado===true?'checked':''} onchange="cambiarFactura(${o.id})"><span class="text-xs text-green-400">SÍ</span></label><label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="factura-${o.id}" value="no" class="radio-custom" ${o.card3.facturado===false?'checked':''} onchange="cambiarFactura(${o.id})"><span class="text-xs text-red-400">NO</span></label></div><div data-section="c3-no" class="${o.card3.facturado===false?'':'hidden'} space-y-1.5"><textarea data-field="c3-motivo-no" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="¿Por qué?">${o.card3.motivoNoFactura}</textarea><button onclick="guardarNoFactura(${o.id})" class="btn-danger w-full py-1.5 rounded-lg text-white font-semibold text-xs">⚠️ Registrar</button></div><div data-section="c3-si" class="${o.card3.facturado===true?'':'hidden'} space-y-1.5"><div class="p-2 rounded-lg alert-banner-success"><p class="text-[10px] text-green-400 font-semibold">✅ Facturado. Proceder a entrega.</p></div><button onclick="confirmarFactura(${o.id})" class="btn-success w-full py-2 rounded-lg text-white font-semibold text-xs">📦 Confirmar</button></div></div>`:`<div class="p-2 rounded-lg alert-banner-success"><p class="text-[10px] text-green-400 font-semibold">✅ Facturado</p></div>`}<div data-error="c3-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div></div></div>
-<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card3.complete?'blocked':''}"><div class="h-1 ${sb(o.card4.complete,!o.card3.complete)}"></div><div class="p-3"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card4.complete,!o.card3.complete)}">4</div><div><div class="text-xs font-bold text-white">Entrega</div><div class="text-[9px] text-slate-500">Recepción</div></div></div><span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card4.complete,!o.card3.complete)}">${bt(o.card4.complete,!o.card3.complete)}</span></div><div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Quien retira</label><input data-field="c4-nombre" value="${o.card4.retiraNombre}" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Nombre..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">DNI</label><input data-field="c4-dni" value="${o.card4.retiraDni}" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="DNI..."></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Personal entrega</label><select data-field="c4-personal-entrega" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(todos,'-- Personal --')}</select></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Fecha pactada</label><input type="datetime-local" data-field="c4-fecha-pactada" value="${o.card4.fechaEntregaPactada||''}" ${o.card4.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"></div><div class="flex items-start gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50"><input type="checkbox" data-field="c4-conformidad" class="checkbox-custom mt-0.5" ${o.card4.conformidad?'checked':''} ${o.card4.complete?'disabled':''}><label class="text-[10px] text-slate-300"><strong>Conformidad</strong></label></div></div><div data-error="c4-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>${!o.card4.complete?`<button onclick="cerrarOrden(${o.id})" class="btn-primary w-full mt-3 py-2 rounded-lg text-white font-semibold text-xs">🔒 Cerrar Orden</button>`:`<div class="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 space-y-0.5"><p class="text-xs text-cyan-400 font-bold">✅ CERRADA</p><p class="text-[10px] text-slate-400">Por: ${o.card4.personalEntrega}</p><p class="text-[10px] text-slate-400">Pactada: ${o.card4.fechaEntregaPactada?formatFP(o.card4.fechaEntregaPactada):'—'}</p></div>`}</div></div>
-</div>`;
-setTimeout(()=>{const s1=document.querySelector('[data-field="c2-mecanico"]');if(s1)s1.value=o.card2.mecanico;const s2=document.querySelector('[data-field="c4-personal-entrega"]');if(s2)s2.value=o.card4.personalEntrega},10);
-renderNotificaciones(o);updateFooter()}
-
-// ===== HELPERS =====
+// Categorías de taller: las que NO son típicamente de gestión/oficina.
+// Se determina dinámicamente: si existe la categoría en el array `categorias`, se usan todas.
+// Para mantener compatibilidad, getTaller devuelve personal de categorías que NO sean puramente administrativas.
+// getGestion devuelve el resto. Ambas funciones se adaptan a las categorías reales.
+const CAT_GESTION_BASE=['COMPRAS','VENTAS','GERENTE','ADMINISTRACION','LOGISTICA','RECEPCION'];
+function getTaller(){
+    // Categorías de taller = categorías que existen y no están en la lista base de gestión
+    const catsTaller=categorias.filter(c=>!CAT_GESTION_BASE.includes(c));
+    if(catsTaller.length>0)return personal.filter(p=>catsTaller.includes(p.rol));
+    // Fallback: devuelve todo el personal si no hay distinción
+    return personal;
+}
+function getGestion(){
+    const catsGestion=categorias.filter(c=>CAT_GESTION_BASE.includes(c));
+    if(catsGestion.length>0)return personal.filter(p=>catsGestion.includes(p.rol));
+    return personal;
+}
+function buildOpts(l,ph){let h=`<option value="">${ph}</option>`;l.forEach(p=>{h+=`<option value="${p.nombre} - ${p.rol}">${p.nombre} — ${p.rol}</option>`});return h}
+function buildOptsAll(ph){let h=`<option value="">${ph}</option>`;personal.forEach(p=>{h+=`<option value="${p.nombre} - ${p.rol}">${p.nombre} — ${p.rol}</option>`});return h}
 function gf(n){const e=document.querySelector(`[data-field="${n}"]`);return e?e.value.trim():''}
 function gc(n){const e=document.querySelector(`[data-field="${n}"]`);return e?e.checked:false}
 function showErr(n,m){const e=document.querySelector(`[data-error="${n}"]`);if(!e)return;e.textContent=m;e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),5000)}
 function hideErr(n){const e=document.querySelector(`[data-error="${n}"]`);if(e)e.classList.add('hidden')}
+function cardName(n){return n===1?'Ingreso':n===2?'Operativa':n===3?'Administración':'Entrega'}
 
-// ===== CARD 1 =====
-function guardarIngreso(id){hideErr('c1-error');const o=getOrden(id),cl=gf('c1-cliente'),ve=gf('c1-vehiculo'),pa=gf('c1-patente'),pr=gf('c1-problema');if(!cl||!ve||!pa||!pr){showErr('c1-error','⚠️ Todos obligatorios.');return}o.card1={complete:true,cliente:cl,vehiculo:ve,patente:pa,problema:pr,timestamp:`Ingresado por ${currentUser?currentUser.nombre:'—'} el ${getNow().full}`};guardarDatos();renderTabs();renderOrden(id);actualizarEtapas()}
+// ===== STOP MODAL =====
+function abrirModalStop(ordenId, cardNum){
+    stopTargetOrdenId=ordenId;
+    stopTargetCard=cardNum;
+    const o=getOrden(ordenId);
+    document.getElementById('stop-card-label').textContent=`Orden OR-${o.numero} · Tarjeta ${cardNum} — ${cardName(cardNum)}`;
+    // populate selects
+    const selQuien=document.getElementById('stop-quien');
+    selQuien.innerHTML=buildOptsAll('-- Seleccione su nombre --');
+    const selSugerido=document.getElementById('stop-sugerido');
+    selSugerido.innerHTML=buildOptsAll('-- Ninguno --');
+    document.getElementById('stop-fecha').textContent=getNow().full;
+    document.getElementById('stop-motivo').value='';
+    document.getElementById('stop-error').classList.add('hidden');
+    document.getElementById('modal-stop').style.display='block';
+}
+function cerrarModalStop(){
+    document.getElementById('modal-stop').style.display='none';
+    stopTargetOrdenId=null;stopTargetCard=null;
+}
+function confirmarStop(){
+    const quien=document.getElementById('stop-quien').value;
+    const motivo=document.getElementById('stop-motivo').value.trim();
+    const sugerido=document.getElementById('stop-sugerido').value;
+    const errEl=document.getElementById('stop-error');
+    if(!quien){errEl.textContent='⚠️ Debe seleccionar quién detiene la tarea.';errEl.classList.remove('hidden');return}
+    if(!motivo){errEl.textContent='⚠️ Debe indicar el motivo del Stop.';errEl.classList.remove('hidden');return}
+    errEl.classList.add('hidden');
+    const o=getOrden(stopTargetOrdenId);
+    if(!o)return;
+    const ts=getNow();
+    const stopEntry={
+        card:stopTargetCard,
+        cardNombre:cardName(stopTargetCard),
+        quien:quien,
+        fecha:ts.full,
+        motivo:motivo,
+        sugerido:sugerido||'',
+        activo:true
+    };
+    o.stops.push(stopEntry);
+    guardarDatos();
+    cerrarModalStop();
+    renderOrden(o.id);
+    renderTabs();
+    renderNotificaciones(o);
+    actualizarEtapas();
+    updateFooter();
+}
+function reanudarStop(ordenId, stopIndex){
+    const o=getOrden(ordenId);
+    if(!o)return;
+    o.stops[stopIndex].activo=false;
+    o.stops[stopIndex].reanudadoPor=currentUser?currentUser.nombre:'—';
+    o.stops[stopIndex].reanudadoFecha=getNow().full;
+    guardarDatos();
+    renderOrden(o.id);
+    renderTabs();
+    renderNotificaciones(o);
+    actualizarEtapas();
+    updateFooter();
+}
+function getActiveStopsForCard(o,cn){
+    return o.stops.filter(s=>s.card===cn&&s.activo);
+}
+function getAllStopsForCard(o,cn){
+    return o.stops.filter(s=>s.card===cn);
+}
+function hasAnyActiveStop(o){
+    return o.stops.some(s=>s.activo);
+}
 
-// ===== CARD 2 =====
+// ===== MODALS =====
+function abrirModalInstructivo(){document.getElementById('modal-instructivo').style.display='block'}
+function cerrarModalInstructivo(){document.getElementById('modal-instructivo').style.display='none'}
+function abrirModalPersonal(){if(!esAdmin())return alert('Solo Admin.');document.getElementById('modal-personal').style.display='block';renderCategoriasPersonal()}
+function cerrarModalPersonal(){document.getElementById('modal-personal').style.display='none'}
+
+// ===== CATEGORÍAS Y PERSONAL - EDITABLE =====
+let editingPersonId=null, editingCatIdx=null;
+
+function renderCategoriasPersonal(){
+    const container=document.getElementById('lista-categorias-personal');
+    if(!categorias.length){container.innerHTML='<p class="text-xs text-slate-500 text-center py-4">No hay categorías. Cree una arriba.</p>';return}
+    let h='';
+    categorias.forEach((cat,ci)=>{
+        const personas=personal.filter(p=>p.rol===cat);
+        const catColor=getCatColor(ci);
+        const isEditingCat=(editingCatIdx===ci);
+
+        h+=`<div class="cat-card">`;
+
+        // ---- HEADER CATEGORÍA ----
+        if(isEditingCat){
+            h+=`<div class="flex items-center justify-between mb-2 pb-2" style="border-bottom:1px solid rgba(99,102,241,.3)">
+                <div class="flex items-center gap-2 flex-1">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style="background:${catColor}20;color:${catColor}">${cat.charAt(0)}</div>
+                    <input type="text" id="edit-cat-name-${ci}" value="${cat}" class="input-glass flex-1 px-2.5 py-1.5 rounded-lg text-sm font-bold" style="border-color:rgba(99,102,241,.4)" onkeydown="if(event.key==='Enter')guardarEdicionCategoria(${ci})">
+                </div>
+                <div class="flex items-center gap-1.5 ml-2">
+                    <button onclick="guardarEdicionCategoria(${ci})" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30">💾 Guardar</button>
+                    <button onclick="cancelarEdicionCategoria()" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-500/20 border border-slate-500/30 text-slate-400 hover:bg-slate-500/30">✕</button>
+                </div>
+            </div>`;
+        } else {
+            h+=`<div class="flex items-center justify-between mb-2 pb-2" style="border-bottom:1px solid rgba(255,255,255,.06)">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style="background:${catColor}20;color:${catColor}">${cat.charAt(0)}</div>
+                    <div>
+                        <span class="text-sm font-bold text-white">${cat}</span>
+                        <span class="text-[10px] text-slate-500 ml-2">(${personas.length} persona${personas.length!==1?'s':''})</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="iniciarEdicionCategoria(${ci})" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20" title="Renombrar categoría">✏️ Renombrar</button>
+                    <button onclick="eliminarCategoria(${ci})" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20" title="Eliminar categoría">🗑️</button>
+                </div>
+            </div>`;
+        }
+
+        // ---- LISTA PERSONAS ----
+        if(personas.length){
+            personas.forEach(p=>{
+                if(editingPersonId===p.id){
+                    // MODO EDICIÓN INLINE
+                    h+=`<div class="cat-person-item" style="border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.06)">
+                        <div class="flex items-center gap-2 flex-1 flex-wrap">
+                            <div class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0" style="background:${catColor}15;color:${catColor}">${p.nombre.charAt(0)}</div>
+                            <input type="text" id="edit-person-name-${p.id}" value="${p.nombre}" class="input-glass px-2 py-1 rounded-lg text-xs font-medium" style="min-width:140px;flex:1;border-color:rgba(99,102,241,.4)" onkeydown="if(event.key==='Enter')guardarEdicionPersona(${p.id})">
+                            <select id="edit-person-rol-${p.id}" class="input-glass px-2 py-1 rounded-lg text-xs" style="min-width:120px;border-color:rgba(99,102,241,.4)">`;
+                    categorias.forEach(c=>{
+                        h+=`<option value="${c}" ${c===p.rol?'selected':''}>${c}</option>`;
+                    });
+                    h+=`</select>
+                        </div>
+                        <div class="flex items-center gap-1 flex-shrink-0 ml-2">
+                            <button onclick="guardarEdicionPersona(${p.id})" class="text-[10px] text-green-400 px-2 py-1 rounded-lg bg-green-500/15 border border-green-500/20 hover:bg-green-500/25 font-bold">💾</button>
+                            <button onclick="cancelarEdicionPersona()" class="text-[10px] text-slate-400 px-2 py-1 rounded-lg bg-slate-500/15 border border-slate-500/20 hover:bg-slate-500/25 font-bold">✕</button>
+                        </div>
+                    </div>`;
+                } else {
+                    // MODO VISUALIZACIÓN
+                    h+=`<div class="cat-person-item">
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0" style="background:${catColor}15;color:${catColor}">${p.nombre.charAt(0)}</div>
+                            <span class="text-xs text-slate-300 font-medium">${p.nombre}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="iniciarEdicionPersona(${p.id})" class="text-[10px] text-blue-400 px-2 py-0.5 rounded-lg hover:bg-blue-500/15 border border-transparent hover:border-blue-500/20 transition-all" title="Editar nombre y categoría">✏️ Editar</button>
+                            <button onclick="eliminarPersona(${p.id})" class="text-[10px] text-red-400 px-2 py-0.5 rounded-lg hover:bg-red-500/15 border border-transparent hover:border-red-500/20 transition-all" title="Eliminar persona">✕ Quitar</button>
+                        </div>
+                    </div>`;
+                }
+            });
+        }else{
+            h+=`<p class="text-[10px] text-slate-600 italic py-2 text-center">Sin personas asignadas</p>`;
+        }
+        // Input para agregar persona a esta categoría
+        h+=`<div class="cat-add-person">
+            <input type="text" id="add-person-${ci}" class="input-glass flex-1 px-2.5 py-1.5 rounded-lg text-xs" placeholder="Nombre y Apellido..." onkeydown="if(event.key==='Enter')agregarPersonaEnCategoria(${ci})">
+            <button onclick="agregarPersonaEnCategoria(${ci})" class="btn-success px-3 py-1.5 rounded-lg text-white text-[10px] font-bold">＋ Agregar</button>
+        </div>`;
+        h+=`</div>`;
+    });
+    container.innerHTML=h;
+}
+
+function getCatColor(i){
+    const colors=['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#14b8a6','#f97316','#64748b'];
+    return colors[i%colors.length];
+}
+
+// ---- CATEGORÍA: Crear / Editar inline / Eliminar ----
+function agregarCategoria(){if(!esAdmin())return;const i=document.getElementById('new-categoria'),n=i.value.trim().toUpperCase();if(!n||categorias.includes(n))return;categorias.push(n);guardarDatos();i.value='';renderCategoriasPersonal()}
+
+function iniciarEdicionCategoria(ci){
+    if(!esAdmin())return;
+    editingCatIdx=ci;
+    editingPersonId=null;
+    renderCategoriasPersonal();
+    setTimeout(()=>{const el=document.getElementById('edit-cat-name-'+ci);if(el){el.focus();el.select()}},50);
+}
+function guardarEdicionCategoria(ci){
+    if(!esAdmin())return;
+    const input=document.getElementById('edit-cat-name-'+ci);
+    if(!input)return;
+    const nuevoNombre=input.value.trim().toUpperCase();
+    if(!nuevoNombre){alert('El nombre no puede estar vacío.');return}
+    if(nuevoNombre!==categorias[ci]&&categorias.includes(nuevoNombre)){alert('Ya existe una categoría con ese nombre.');return}
+    const oldName=categorias[ci];
+    categorias[ci]=nuevoNombre;
+    // Actualizar rol en personal
+    personal.forEach(p=>{if(p.rol===oldName)p.rol=nuevoNombre});
+    // Actualizar referencias en órdenes (el formato es "Nombre - ROL")
+    ordenes.forEach(o=>{
+        const rOld=` - ${oldName}`;
+        const rNew=` - ${nuevoNombre}`;
+        if(o.card2.mecanico&&o.card2.mecanico.endsWith(rOld))o.card2.mecanico=o.card2.mecanico.replace(rOld,rNew);
+        if(o.card4.quienNotifico&&o.card4.quienNotifico.endsWith(rOld))o.card4.quienNotifico=o.card4.quienNotifico.replace(rOld,rNew);
+        if(o.card4.personalEntrega&&o.card4.personalEntrega.endsWith(rOld))o.card4.personalEntrega=o.card4.personalEntrega.replace(rOld,rNew);
+        if(o.card2.detenidaResponsable&&o.card2.detenidaResponsable.endsWith(rOld))o.card2.detenidaResponsable=o.card2.detenidaResponsable.replace(rOld,rNew);
+        // Actualizar stops
+        if(o.stops)o.stops.forEach(s=>{
+            if(s.quien&&s.quien.endsWith(rOld))s.quien=s.quien.replace(rOld,rNew);
+            if(s.sugerido&&s.sugerido.endsWith(rOld))s.sugerido=s.sugerido.replace(rOld,rNew);
+        });
+    });
+    editingCatIdx=null;
+    guardarDatos();
+    renderCategoriasPersonal();
+    if(activeOrdenId)renderOrden(activeOrdenId);
+}
+function cancelarEdicionCategoria(){
+    editingCatIdx=null;
+    renderCategoriasPersonal();
+}
+
+function eliminarCategoria(i){
+    if(!esAdmin())return;
+    const cat=categorias[i];
+    const personasEnCat=personal.filter(p=>p.rol===cat);
+    if(personasEnCat.length){
+        const otras=categorias.filter((_,idx)=>idx!==i);
+        if(otras.length>0){
+            const opcion=confirm(`La categoría "${cat}" tiene ${personasEnCat.length} persona(s) asignada(s):\n${personasEnCat.map(p=>p.nombre).join(', ')}\n\n¿Desea eliminar la categoría?\n- Aceptar: mover el personal a "${otras[0]}" y eliminar la categoría\n- Cancelar: no hacer nada`);
+            if(!opcion)return;
+            personal.forEach(p=>{if(p.rol===cat)p.rol=otras[0]});
+        }else{
+            if(!confirm(`La categoría "${cat}" tiene ${personasEnCat.length} persona(s). No hay otras categorías para reasignarlas. ¿Eliminar la categoría y todo su personal?`))return;
+            personal=personal.filter(p=>p.rol!==cat);
+        }
+    }else{
+        if(!confirm(`¿Eliminar la categoría "${cat}"?`))return;
+    }
+    categorias.splice(i,1);
+    editingCatIdx=null;
+    guardarDatos();
+    renderCategoriasPersonal();
+    if(activeOrdenId)renderOrden(activeOrdenId);
+}
+
+// ---- PERSONA: Agregar / Editar inline / Eliminar ----
+function agregarPersonaEnCategoria(catIndex){
+    if(!esAdmin())return;
+    const input=document.getElementById('add-person-'+catIndex);
+    if(!input)return;
+    const nombre=input.value.trim();
+    if(!nombre){input.style.borderColor='rgba(239,68,68,.5)';setTimeout(()=>{input.style.borderColor=''},1500);return}
+    const cat=categorias[catIndex];
+    personal.push({id:nextPersonId++,nombre:nombre,rol:cat});
+    input.value='';
+    guardarDatos();
+    renderCategoriasPersonal();
+    if(activeOrdenId)renderOrden(activeOrdenId);
+}
+
+function iniciarEdicionPersona(id){
+    if(!esAdmin())return;
+    editingPersonId=id;
+    editingCatIdx=null;
+    renderCategoriasPersonal();
+    setTimeout(()=>{const el=document.getElementById('edit-person-name-'+id);if(el){el.focus();el.select()}},50);
+}
+function guardarEdicionPersona(id){
+    if(!esAdmin())return;
+    const p=personal.find(x=>x.id===id);
+    if(!p)return;
+    const inputNombre=document.getElementById('edit-person-name-'+id);
+    const selectRol=document.getElementById('edit-person-rol-'+id);
+    if(!inputNombre||!selectRol)return;
+    const nuevoNombre=inputNombre.value.trim();
+    const nuevoRol=selectRol.value;
+    if(!nuevoNombre){alert('El nombre no puede estar vacío.');return}
+    const oldNombre=p.nombre;
+    const oldRol=p.rol;
+    p.nombre=nuevoNombre;
+    p.rol=nuevoRol;
+    // Actualizar referencias en órdenes (mecanico, quienNotifico, etc.) si el nombre cambió
+    if(oldNombre!==nuevoNombre){
+        ordenes.forEach(o=>{
+            const oldRef=`${oldNombre} - ${oldRol}`;
+            const newRef=`${nuevoNombre} - ${nuevoRol}`;
+            if(o.card2.mecanico===oldRef)o.card2.mecanico=newRef;
+            if(o.card4.quienNotifico===oldRef)o.card4.quienNotifico=newRef;
+            if(o.card4.personalEntrega===oldRef)o.card4.personalEntrega=newRef;
+            if(o.card2.detenidaResponsable===oldRef)o.card2.detenidaResponsable=newRef;
+        });
+    }
+    editingPersonId=null;
+    guardarDatos();
+    renderCategoriasPersonal();
+    if(activeOrdenId)renderOrden(activeOrdenId);
+}
+function cancelarEdicionPersona(){
+    editingPersonId=null;
+    renderCategoriasPersonal();
+}
+
+function eliminarPersona(id){if(!esAdmin()||!confirm('¿Eliminar esta persona?'))return;personal=personal.filter(p=>p.id!==id);editingPersonId=null;guardarDatos();renderCategoriasPersonal();if(activeOrdenId)renderOrden(activeOrdenId)}
+
+// ===== EDICIÓN =====
+function habilitarEdicion(cn,oid){if(!esAdmin())return;editingCard[cn]=true;renderOrden(oid)}
+function cancelarEdicion(cn,oid){editingCard[cn]=false;renderOrden(oid)}
+function guardarEdicion(cn,oid){
+    const o=getOrden(oid);if(!o)return;
+    const ts=getNow(),marca=` | ✏️ Editado por ${currentUser.nombre} el ${ts.full}`;
+    if(cn===1){const cl=gf('c1-cliente'),ve=gf('c1-vehiculo'),pa=gf('c1-patente'),pr=gf('c1-problema');if(!cl||!ve||!pa||!pr)return showErr('c1-error','⚠️ Obligatorios.');o.card1.cliente=cl;o.card1.vehiculo=ve;o.card1.patente=pa;o.card1.problema=pr;o.card1.timestamp+=marca}
+    else if(cn===2){const me=gf('c2-mecanico-edit'),di=gf('c2-diagnostico-edit'),tr=gf('c2-trabajos-edit');if(!di)return showErr('c2-error','⚠️ Diagnóstico obligatorio.');if(me)o.card2.mecanico=me;o.card2.diagnostico=di;if(tr)o.card2.trabajos=tr;o.card2.diagnosticoTimestamp+=marca}
+    else if(cn===3){const fac=document.querySelector('input[name="factura-edit"]:checked')?.value;if(fac==='si'){o.card3.facturado=true;o.card3.motivoNoFactura='';if(!o.card3.complete){o.card3.complete=true}o.card3.timestamp=`Admin por ${currentUser.nombre} el ${ts.full}. Facturado: SÍ`+marca}else if(fac==='no'){o.card3.facturado=false;o.card3.complete=false;o.card3.motivoNoFactura=gf('c3-motivo-edit')||'No especificado';o.card3.timestamp+=marca}}
+    else if(cn===4){const qn=gf('c4-quien-notifico'),no=gf('c4-nombre'),dn=gf('c4-dni'),fp=gf('c4-fecha-pactada'),co=gc('c4-conformidad');if(!qn||!no||!dn||!fp||!co)return showErr('c4-error','⚠️ Complete todo.');o.card4.quienNotifico=qn;if(!o.card4.fechaNotificacion)o.card4.fechaNotificacion=getNow().full;o.card4.retiraNombre=no;o.card4.retiraDni=dn;o.card4.personalEntrega=qn;o.card4.fechaEntregaPactada=fp;o.card4.conformidad=co;o.card4.timestamp+=marca}
+    editingCard[cn]=false;guardarDatos();renderTabs();renderOrden(oid);actualizarEtapas();
+}
+
+// ===== ÓRDENES =====
+function crearNuevaOrden(){const id=nextOrdenId++,ts=getNow();ordenes.push({id,numero:String(id).padStart(4,'0'),createdAt:ts.full,creadaPor:currentUser?currentUser.nombre:'—',card1:{complete:false,cliente:'',vehiculo:'',patente:'',problema:'',timestamp:''},card2:{complete:false,diagnosticoGuardado:false,mecanico:'',diagnostico:'',diagnosticoTimestamp:'',estado:'en_proceso',trabajos:'',timestamps:[],detenida:false,detenidaMotivo:'',detenidaResponsable:'',detenidaFecha:'',bannerFacturacion:'',finalTimestamp:''},card3:{complete:false,facturado:null,motivoNoFactura:'',noFacturaGuardado:false,timestamp:''},card4:{complete:false,quienNotifico:'',fechaNotificacion:'',retiraNombre:'',retiraDni:'',conformidad:false,personalEntrega:'',fechaEntregaPactada:'',timestamp:''},finalizada:false,stops:[]});guardarDatos();activeOrdenId=id;renderTabs();renderOrden(id);updateFooter();actualizarEtapas()}
+function seleccionarOrden(id){activeOrdenId=id;editingCard={};renderTabs();renderOrden(id);updateFooter();actualizarEtapas()}
+function getOrden(id){return ordenes.find(o=>o.id===id)}
+function getActiveOrden(){return activeOrdenId?getOrden(activeOrdenId):null}
+function eliminarOrden(id,ev){ev.stopPropagation();if(!esAdmin())return alert('Solo Admin.');if(!confirm('¿Eliminar?'))return;ordenes=ordenes.filter(o=>o.id!==id);guardarDatos();if(activeOrdenId===id)activeOrdenId=ordenes.length?ordenes[ordenes.length-1].id:null;renderTabs();if(activeOrdenId)renderOrden(activeOrdenId);else{document.getElementById('orden-container').innerHTML='<div class="flex items-center justify-center h-52 text-slate-600"><div class="text-center"><p class="text-4xl mb-2">🔧</p><p class="text-sm">Presione <strong class="text-indigo-400">"+ Nueva Orden"</strong></p></div></div>';document.getElementById('notificaciones-container').innerHTML='';document.getElementById('etapas-indicator').style.display='none'}updateFooter();actualizarEtapas()}
+function getProgress(o){let p=0;if(o.card1.complete)p+=25;if(o.card2.complete)p+=25;if(o.card3.complete)p+=25;if(o.card4.complete)p+=25;return p}
+function getStatusText(o){return o.finalizada?'FINALIZADA':hasAnyActiveStop(o)?'STOP':o.card2.detenida?'DETENIDA':'EN PROCESO'}
+
+// ===== TABS =====
+function renderTabs(){const c=document.getElementById('ordenes-tabs');if(!ordenes.length){c.innerHTML='';return}let h='';ordenes.forEach(o=>{const a=o.id===activeOrdenId,col=o.finalizada?'#06b6d4':hasAnyActiveStop(o)?'#f97316':o.card2.detenida?'#ef4444':'#22c55e',pr=getProgress(o);h+=`<div class="orden-tab flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg flex-shrink-0 ${a?'active':''}" onclick="seleccionarOrden(${o.id})"><div class="tab-dot" style="background:${col}"></div><div class="flex flex-col"><span class="text-[10px] font-bold text-white whitespace-nowrap">OR-${o.numero}</span><span class="text-[9px] text-slate-500 whitespace-nowrap">${o.card1.complete?o.card1.cliente||'—':'Nueva'} · ${pr}%</span></div>${esAdmin()?`<button onclick="eliminarOrden(${o.id},event)" class="ml-0.5 text-slate-600 hover:text-red-400 text-[10px]" title="Eliminar orden">✕</button>`:''}</div>`});c.innerHTML=h}
+
+// ===== ETAPAS =====
+function actualizarEtapas(){const o=getActiveOrden(),ind=document.getElementById('etapas-indicator');if(!o){ind.style.display='none';return}ind.style.display='flex';[{id:1,ok:o.card1.complete,bl:false},{id:2,ok:o.card2.complete,bl:!o.card1.complete},{id:3,ok:o.card3.complete,bl:!o.card2.complete},{id:4,ok:o.card4.complete,bl:!o.card3.complete}].forEach(e=>{const el=document.getElementById(`etapa-${e.id}`);el.classList.remove('active','current');const hasStop=getActiveStopsForCard(o,e.id).length>0;if(hasStop){el.style.cssText='color:#f97316;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.15)'}else if(e.ok){el.style.cssText='color:#22c55e;border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.15)'}else if(e.bl){el.style.cssText='color:#64748b;border-color:rgba(100,116,139,.3);background:rgba(100,116,139,.15)'}else{el.style.cssText='color:#ef4444;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.15)';el.classList.add('active','current')}})}
+
+// ===== NOTIFICACIONES =====
+function renderNotificaciones(o){const c=document.getElementById('notificaciones-container');if(!o){c.innerHTML='<p class="text-xs text-slate-500 italic">Seleccione una orden</p>';return}let it=[];if(o.card1.timestamp)it.push({e:'1·INGRESO',t:o.card1.timestamp,c:o.card1.complete?'green':'red'});if(o.card2.diagnosticoTimestamp)it.push({e:'2·OPERATIVA',t:o.card2.diagnosticoTimestamp,c:o.card2.complete?'green':'indigo'});o.card2.timestamps.forEach(x=>it.push({e:'2·OPERATIVA',t:x.text,c:o.card2.complete?'green':x.color}));if(o.card2.bannerFacturacion)it.push({e:'2·OPERATIVA',t:`📢 Aviso Admin — ${o.card2.bannerFacturacion}`,c:o.card2.complete?'green':'amber'});if(o.card2.finalTimestamp)it.push({e:'2·OPERATIVA',t:o.card2.finalTimestamp,c:'green'});if(o.card3.timestamp)it.push({e:'3·ADMIN',t:o.card3.timestamp,c:o.card3.complete?'green':'indigo'});if(o.card3.motivoNoFactura&&!o.card3.complete)it.push({e:'3·ADMIN',t:`⛔ Sin facturar: ${o.card3.motivoNoFactura}`,c:'red'});if(o.card4.timestamp)it.push({e:'4·ENTREGA',t:o.card4.timestamp,c:o.finalizada?'cyan':'green'});
+// Add STOP notifications
+if(o.stops&&o.stops.length){o.stops.forEach((s,i)=>{const statusTxt=s.activo?'🛑 STOP ACTIVO':'✅ STOP Reanudado';const txt=`${statusTxt} — ${s.quien} — ${s.motivo}${s.sugerido?' — Sugerido: '+s.sugerido:''}${!s.activo?' — Reanudado por '+s.reanudadoPor+' el '+s.reanudadoFecha:''}`;it.push({e:`${s.card}·${s.cardNombre.toUpperCase()}`,t:txt,c:s.activo?'orange':'green'})})}
+if(!it.length){c.innerHTML='<p class="text-xs text-slate-500 italic">Sin notificaciones</p>';return}c.innerHTML=it.map(i=>`<div class="notif-${i.c} pl-3 py-2.5 pr-2 mb-2 rounded-r-lg bg-slate-800/30 fade-in"><div class="text-[11px] font-bold opacity-80 mb-1">${i.e}</div><div class="text-[13px] leading-snug font-medium">${i.t}</div></div>`).join('')}
+
+// ===== RENDER STOP BANNERS =====
+function renderStopBanners(o, cardNum){
+    const activeStops=getActiveStopsForCard(o,cardNum);
+    const resolvedStops=o.stops.filter(s=>s.card===cardNum&&!s.activo);
+    if(!activeStops.length&&!resolvedStops.length)return '';
+    let h='';
+    activeStops.forEach((s,idx)=>{
+        const realIdx=o.stops.indexOf(s);
+        h+=`<div class="stop-banner blink-slow">
+            <div class="stop-banner-title">🛑 TAREA DETENIDA</div>
+            <div class="stop-banner-row"><span class="label">Quién:</span>${s.quien}</div>
+            <div class="stop-banner-row"><span class="label">Fecha:</span>${s.fecha}</div>
+            <div class="stop-banner-row"><span class="label">Motivo:</span>${s.motivo}</div>
+            ${s.sugerido?`<div class="stop-banner-row"><span class="label">Sugerido:</span>${s.sugerido}</div>`:''}
+            <button onclick="reanudarStop(${o.id},${realIdx})" class="stop-resume-btn">▶️ Reanudar Tarea</button>
+        </div>`;
+    });
+    resolvedStops.forEach(s=>{
+        h+=`<div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:8px;margin-top:6px;opacity:.7">
+            <div style="font-size:10px;font-weight:700;color:#22c55e;display:flex;align-items:center;gap:4px">✅ STOP Resuelto</div>
+            <div style="font-size:9px;color:#94a3b8;margin-top:2px">Detuvo: ${s.quien} · ${s.fecha}</div>
+            <div style="font-size:9px;color:#94a3b8">Motivo: ${s.motivo}</div>
+            ${s.sugerido?`<div style="font-size:9px;color:#94a3b8">Sugerido: ${s.sugerido}</div>`:''}
+            <div style="font-size:9px;color:#86efac;margin-top:2px">Reanudó: ${s.reanudadoPor||'—'} · ${s.reanudadoFecha||'—'}</div>
+        </div>`;
+    });
+    return h;
+}
+
+// ===== STOP BUTTON HTML =====
+function renderStopBtn(ordenId, cardNum, isBlocked){
+    if(isBlocked)return '';
+    return `<button onclick="event.stopPropagation();abrirModalStop(${ordenId},${cardNum})" class="btn-stop" title="Detener tarea">
+        <div class="btn-stop-inner"><span>STOP</span></div>
+    </button>`;
+}
+
+// ===== RENDER =====
+function renderOrden(id){
+const o=getOrden(id);if(!o)return;
+if(!o.stops)o.stops=[];
+const mec=getByRol('MECANICOS'),ges=getGestion(),tal=getTaller(),todos=personal,cn=document.getElementById('orden-container');
+const ed1=editingCard[1],ed2=editingCard[2],ed3=editingCard[3],ed4=editingCard[4];
+function sb(c,b){const hasStop=arguments.length>2&&arguments[2];return hasStop?'status-bar-orange':c?'status-bar-green':b?'status-bar-gray':'status-bar-red'}
+function nb(c,b){return c?'bg-green-500/20 text-green-400':b?'bg-slate-500/20 text-slate-400':'bg-red-500/20 text-red-400'}
+function bb(c,b){return c?'bg-green-500/15 text-green-400 border-green-500/20':b?'bg-slate-500/15 text-slate-400 border-slate-500/20':'bg-red-500/15 text-red-400 border-red-500/20'}
+function bt(c,b,ed){return ed?'Editando':c?'Completado':b?'Bloqueado':'Pendiente'}
+function btnE(n){return esAdmin()&&!editingCard[n]?`<button onclick="habilitarEdicion(${n},${o.id})" class="btn-edit px-2 py-0.5 rounded text-[9px] text-white font-semibold">✏️ Editar</button>`:''}
+function btnSC(n){return`<div class="flex gap-2 mt-3"><button onclick="guardarEdicion(${n},${o.id})" class="btn-success flex-1 py-2 rounded-lg text-white font-semibold text-xs">💾 Guardar</button><button onclick="cancelarEdicion(${n},${o.id})" class="btn-danger flex-1 py-2 rounded-lg text-white font-semibold text-xs">✕ Cancelar</button></div>`}
+const c1d=o.card1.complete&&!ed1,c4d=o.card4.complete&&!ed4;
+const s1active=getActiveStopsForCard(o,1).length>0;
+const s2active=getActiveStopsForCard(o,2).length>0;
+const s3active=getActiveStopsForCard(o,3).length>0;
+const s4active=getActiveStopsForCard(o,4).length>0;
+
+cn.innerHTML=`<div class="mb-3 flex items-center gap-2"><h2 class="text-sm font-bold text-white">OR-${o.numero}</h2><span class="text-[10px] text-slate-500">${o.createdAt}${o.creadaPor?' · '+o.creadaPor:''}</span></div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+<!-- T1 -->
+<div class="glass-card rounded-xl shadow-lg overflow-hidden ${ed1?'editing-border':''}"><div class="h-1 ${sb(o.card1.complete,false,s1active)}"></div><div class="p-3">
+<div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card1.complete,false)}">1</div><div><div class="text-xs font-bold text-white">Ingreso</div><div class="text-[9px] text-slate-500">Recepción</div></div></div><div class="flex items-center gap-1.5">${renderStopBtn(o.id,1,false)}<span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card1.complete,false)}">${bt(o.card1.complete,false,ed1)}</span>${o.card1.complete?btnE(1):''}</div></div>
+<div class="space-y-2">
+<div><label class="block text-[10px] text-slate-400 mb-0.5">Cliente</label><input data-field="c1-cliente" value="${o.card1.cliente}" ${c1d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Cliente..."></div>
+<div><label class="block text-[10px] text-slate-400 mb-0.5">Vehículo/Maquinaria</label><input data-field="c1-vehiculo" value="${o.card1.vehiculo}" ${c1d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Unidad..."></div>
+<div><label class="block text-[10px] text-slate-400 mb-0.5">Patente/id</label><input data-field="c1-patente" value="${o.card1.patente}" ${c1d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Patente..."></div>
+<div><label class="block text-[10px] text-slate-400 mb-0.5">Problema segun cliente</label><textarea data-field="c1-problema" ${c1d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2">${o.card1.problema}</textarea></div></div>
+<div data-error="c1-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>
+${!o.card1.complete?`<button onclick="guardarIngreso(${o.id})" class="btn-primary w-full mt-3 py-2 rounded-lg text-white font-semibold text-xs">💾 Guardar Ingreso</button>`:''}
+${ed1?btnSC(1):''}
+${renderStopBanners(o,1)}</div></div>
+
+<!-- T2 -->
+<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card1.complete?'blocked':''} ${ed2?'editing-border':''}"><div class="h-1 ${sb(o.card2.complete,!o.card1.complete,s2active)}"></div><div class="p-3">
+<div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card2.complete,!o.card1.complete)}">2</div><div><div class="text-xs font-bold text-white">Operativa</div><div class="text-[9px] text-slate-500">Mecánico</div></div></div><div class="flex items-center gap-1.5">${renderStopBtn(o.id,2,!o.card1.complete)}<span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card2.complete,!o.card1.complete)}">${bt(o.card2.complete,!o.card1.complete,ed2)}</span>${o.card2.complete?btnE(2):''}</div></div>
+${ed2?`<div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Mecánico</label><select data-field="c2-mecanico-edit" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(mec,'-- Mecánico --')}</select></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Diagnóstico</label><textarea data-field="c2-diagnostico-edit" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2">${o.card2.diagnostico}</textarea></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Trabajos</label><textarea data-field="c2-trabajos-edit" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2">${o.card2.trabajos}</textarea></div>${btnSC(2)}</div>`:
+`<div class="space-y-2"><div><label class="block text-[10px] text-slate-400 mb-0.5">Mecánico</label><select data-field="c2-mecanico" ${o.card2.diagnosticoGuardado||o.card2.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(mec,'-- Mecánico --')}</select></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Diagnóstico</label><textarea data-field="c2-diagnostico" ${o.card2.diagnosticoGuardado||o.card2.complete?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2">${o.card2.diagnostico}</textarea></div>${!o.card2.diagnosticoGuardado&&!o.card2.complete?`<button onclick="guardarDiagnostico(${o.id})" class="btn-primary w-full py-1.5 rounded-lg text-white font-semibold text-xs">📋 Guardar Diagnóstico</button>`:''}</div>`+`${o.card2.diagnosticoGuardado&&!o.card2.complete?`<div class="mt-3 space-y-2"><select data-field="c2-estado" onchange="cambiarEstado(${o.id})" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs font-semibold" style="color:${o.card2.estado==='en_proceso'?'#22c55e':o.card2.estado==='parado'?'#ef4444':'#e2e8f0'}"><option value="en_proceso" ${o.card2.estado==='en_proceso'?'selected':''}>🟢 En Proceso</option><option value="terminado" ${o.card2.estado==='terminado'?'selected':''}>✅ Terminado</option><option value="parado" ${o.card2.estado==='parado'?'selected':''}>🔴 Parado</option></select><div data-section="c2-enproceso" class="${o.card2.estado==='en_proceso'?'':'hidden'} mt-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20"><p class="text-xs font-bold text-green-400 blink-slow">⚙️ Mecanico Trabajando</p></div><div data-section="c2-terminado" class="${o.card2.estado==='terminado'?'':'hidden'} space-y-2"><textarea data-field="c2-trabajos" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Trabajos Realizados...">${o.card2.trabajos}</textarea><button onclick="finalizarOperativa(${o.id})" class="btn-success w-full py-2 rounded-lg text-white font-semibold text-xs">✅ Mecanico finalizar Reparacion</button></div><div data-section="c2-derivacion" class="${o.card2.estado==='parado'&&!o.card2.detenida?'':'hidden'}"><div class="p-2 rounded-lg bg-red-500/10 border border-red-500/20 space-y-2"><div class="text-[10px] font-bold text-red-400">⚠️ DERIVACIÓN</div><select data-field="c2-causal" onchange="cambiarCausal()" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"><option value="">--</option><option value="Falta de Repuesto">Falta Repuesto</option><option value="Se envió al Tornero">Tornero</option><option value="Se envió al Electricista">Electricista</option><option value="Se envió a Rectificación">Rectificación</option><option value="Otro motivo">Otro</option></select><div data-section="c2-causal-otro" class="hidden"><input data-field="c2-causal-otro-txt" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs" placeholder="Detalle..."></div><select data-field="c2-persona-designada" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(ges,'-- Responsable --')}</select><button onclick="confirmarDerivacion(${o.id})" class="btn-danger w-full py-1.5 rounded-lg text-white font-semibold text-xs">🚨 Confirmar</button></div></div><div data-section="c2-destrabe" class="${o.card2.detenida?'':'hidden'}"><div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2"><div class="text-[10px] font-bold text-amber-400">🔧 DESTRABE</div><p class="text-xs text-white font-semibold">¿${o.card2.detenidaResponsable||'—'}, resuelto?</p><div class="flex gap-4"><label class="flex items-center gap-1.5"><input type="radio" name="destrabe-${o.id}" value="si" class="radio-custom" onchange="cambiarDestrabe(${o.id})"><span class="text-xs text-green-400">SÍ</span></label><label class="flex items-center gap-1.5"><input type="radio" name="destrabe-${o.id}" value="no" class="radio-custom" onchange="cambiarDestrabe(${o.id})"><span class="text-xs text-red-400">NO</span></label></div><div data-section="c2-destrabe-si" class="hidden space-y-1.5"><select data-field="c2-entrega-pedido" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(tal,'--')}</select><button onclick="guardarEntrega(${o.id})" class="btn-success w-full py-1.5 rounded-lg text-white font-semibold text-xs">✅</button></div><div data-section="c2-destrabe-no" class="hidden space-y-1.5"><input type="date" data-field="c2-destrabe-fecha" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"><textarea data-field="c2-destrabe-motivo" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Motivo..."></textarea><button onclick="guardarRetraso(${o.id})" class="btn-warning w-full py-1.5 rounded-lg text-white font-semibold text-xs">📅</button></div></div></div></div>`:''}`}
+<div data-error="c2-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>
+${renderStopBanners(o,2)}</div></div>
+
+<!-- T3 -->
+<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card2.complete?'blocked':''} ${ed3?'editing-border':''}"><div class="h-1 ${sb(o.card3.complete,!o.card2.complete,s3active)}"></div><div class="p-3">
+<div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card3.complete,!o.card2.complete)}">3</div><div><div class="text-xs font-bold text-white">Administración</div><div class="text-[9px] text-slate-500">Oficina</div></div></div><div class="flex items-center gap-1.5">${renderStopBtn(o.id,3,!o.card2.complete)}<span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card3.complete,!o.card2.complete)}">${bt(o.card3.complete,!o.card2.complete,ed3)}</span>${o.card3.complete?btnE(3):''}</div></div>
+<div class="mb-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-1"><div><span class="text-[9px] text-slate-500 uppercase">Diagnóstico:</span><p class="text-[10px] text-slate-300">${o.card2.diagnostico||'—'}</p></div><div class="border-t border-slate-700/50 pt-1"><span class="text-[9px] text-slate-500 uppercase">Trabajos:</span><p class="text-[10px] text-slate-300">${o.card2.trabajos||'—'}</p></div></div>
+${ed3?`<div class="space-y-2"><label class="block text-[10px] text-slate-400 mb-1 blink-slow font-bold">¿Se Facturó el trabajo ?</label><div class="flex gap-4"><label class="flex items-center gap-1.5"><input type="radio" name="factura-edit" value="si" class="radio-custom" ${o.card3.facturado===true?'checked':''}><span class="text-xs text-green-400">SÍ</span></label><label class="flex items-center gap-1.5"><input type="radio" name="factura-edit" value="no" class="radio-custom" ${o.card3.facturado===false?'checked':''}><span class="text-xs text-red-400">NO</span></label></div><div><label class="block text-[10px] text-slate-400 mb-0.5 mt-2">Motivo (si NO)</label><textarea data-field="c3-motivo-edit" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2">${o.card3.motivoNoFactura}</textarea></div>${o.card3.noFacturaGuardado?`<div class="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 mt-2"><p class="text-xs font-bold text-red-400 blink-slow">🚫 no entregar- se requiere respuesta de Gerencia</p></div>`:''}${btnSC(3)}</div>`:
+`${!o.card3.complete?`<div class="space-y-2"><label class="block text-[10px] text-slate-400 mb-1 blink-slow font-bold">¿Se Facturó el trabajo ?</label><div class="flex gap-4"><label class="flex items-center gap-1.5"><input type="radio" name="factura-${o.id}" value="si" class="radio-custom" ${o.card3.facturado===true?'checked':''} onchange="cambiarFactura(${o.id})"><span class="text-xs text-green-400">SÍ</span></label><label class="flex items-center gap-1.5"><input type="radio" name="factura-${o.id}" value="no" class="radio-custom" ${o.card3.facturado===false?'checked':''} onchange="cambiarFactura(${o.id})"><span class="text-xs text-red-400">NO</span></label></div><div data-section="c3-no" class="${o.card3.facturado===false?'':'hidden'} space-y-1.5"><textarea data-field="c3-motivo-no" class="input-glass w-full px-2 py-1.5 rounded-lg text-xs resize-none" rows="2" placeholder="Describir motivo...">${o.card3.motivoNoFactura}</textarea><button onclick="guardarNoFactura(${o.id})" class="btn-danger w-full py-1.5 rounded-lg text-white font-semibold text-xs">⚠️ Guardar Motivo</button></div>${o.card3.noFacturaGuardado?`<div class="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 mt-2"><p class="text-xs font-bold text-red-400 blink-slow">🚫 no entregar- se requiere respuesta de Gerencia</p><p class="text-[10px] text-red-300 mt-1">${o.card3.motivoNoFactura}</p></div>`:''}<div data-section="c3-si" class="${o.card3.facturado===true?'':'hidden'} space-y-1.5"><div class="p-2 rounded-lg alert-banner-success"><p class="text-[10px] text-green-400 font-semibold">✅ Facturado.</p></div><button onclick="confirmarFactura(${o.id})" class="btn-success w-full py-2 rounded-lg text-white font-semibold text-xs">📦 Confirmar</button></div></div>`:`<div class="p-2 rounded-lg alert-banner-success"><p class="text-[10px] text-green-400 font-semibold">✅ Facturado</p></div>`}`}
+<div data-error="c3-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>
+${renderStopBanners(o,3)}</div></div>
+
+<!-- T4 -->
+<div class="glass-card rounded-xl shadow-lg overflow-hidden ${!o.card3.complete?'blocked':''} ${ed4?'editing-border':''}"><div class="h-1 ${sb(o.card4.complete,!o.card3.complete,s4active)}"></div><div class="p-3">
+<div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="card-number ${nb(o.card4.complete,!o.card3.complete)}">4</div><div><div class="text-xs font-bold text-white">Entrega</div><div class="text-[9px] text-slate-500">Recepción</div></div></div><div class="flex items-center gap-1.5">${renderStopBtn(o.id,4,!o.card3.complete)}<span class="px-2 py-0.5 rounded-full text-[9px] font-semibold border ${bb(o.card4.complete,!o.card3.complete)}">${bt(o.card4.complete,!o.card3.complete,ed4)}</span>${o.card4.complete?btnE(4):''}</div></div>
+<div class="space-y-2">
+<div class="mb-3 p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20"><label class="block text-[10px] text-slate-300 mb-1 font-bold blink-slow">📞 Quien notifico al cliente sobre la entrega ?</label><select data-field="c4-quien-notifico" ${c4d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs">${buildOpts(todos,'-- Seleccionar --')}</select><div class="mt-2"><span class="text-[9px] text-slate-500">Fecha y hora de notificación:</span><p class="text-[10px] text-slate-300 font-semibold">${o.card4.fechaNotificacion||getNow().full}</p></div></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Fecha y hora pactada para la Entrega</label><input type="datetime-local" data-field="c4-fecha-pactada" value="${o.card4.fechaEntregaPactada||''}" ${c4d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"></div><div><label class="block text-[10px] text-slate-400 mb-0.5">Quien retira</label><input data-field="c4-nombre" value="${o.card4.retiraNombre}" ${c4d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"></div>
+<div><label class="block text-[10px] text-slate-400 mb-0.5">DNI</label><input data-field="c4-dni" value="${o.card4.retiraDni}" ${c4d?'disabled':''} class="input-glass w-full px-2 py-1.5 rounded-lg text-xs"></div>
+
+
+<div class="flex items-start gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50"><input type="checkbox" data-field="c4-conformidad" class="checkbox-custom mt-0.5" ${o.card4.conformidad?'checked':''} ${c4d?'disabled':''}><label class="text-[10px] text-slate-300"><strong>Conformidad</strong></label></div></div>
+<div data-error="c4-error" class="hidden mt-1.5 p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]"></div>
+${!o.card4.complete?`<button onclick="cerrarOrden(${o.id})" class="btn-primary w-full mt-3 py-2 rounded-lg text-white font-semibold text-xs">🔒 Cerrar Orden</button>`:!ed4?`<div class="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 space-y-0.5"><p class="text-xs text-cyan-400 font-bold">✅ CERRADA</p><p class="text-[10px] text-slate-400">Notificó: ${o.card4.quienNotifico||'—'}</p><p class="text-[10px] text-slate-400">Pactada: ${o.card4.fechaEntregaPactada?formatFP(o.card4.fechaEntregaPactada):'—'}</p></div>`:''}
+${ed4?btnSC(4):''}
+${renderStopBanners(o,4)}</div></div>
+
+</div>`;
+setTimeout(()=>{
+    const s1=document.querySelector('[data-field="c2-mecanico"]');if(s1)s1.value=o.card2.mecanico;
+    const s1e=document.querySelector('[data-field="c2-mecanico-edit"]');if(s1e)s1e.value=o.card2.mecanico;
+    const s3=document.querySelector('[data-field="c4-quien-notifico"]');if(s3)s3.value=o.card4.quienNotifico;
+},10);
+renderNotificaciones(o);updateFooter()}
+
+// ===== CARD ACTIONS =====
+function guardarIngreso(id){hideErr('c1-error');const o=getOrden(id),cl=gf('c1-cliente'),ve=gf('c1-vehiculo'),pa=gf('c1-patente'),pr=gf('c1-problema');if(!cl||!ve||!pa||!pr){showErr('c1-error','⚠️ Obligatorios.');return}o.card1={complete:true,cliente:cl,vehiculo:ve,patente:pa,problema:pr,timestamp:`Ingresado por ${currentUser?currentUser.nombre:'—'} el ${getNow().full}`};guardarDatos();renderTabs();renderOrden(id);actualizarEtapas()}
 function guardarDiagnostico(id){hideErr('c2-error');const o=getOrden(id),m=gf('c2-mecanico'),d=gf('c2-diagnostico');if(!m||!d){showErr('c2-error','⚠️ Complete.');return}o.card2.diagnosticoGuardado=true;o.card2.mecanico=m;o.card2.diagnostico=d;o.card2.diagnosticoTimestamp=`Diagnóstico por ${currentUser?currentUser.nombre:'—'} el ${getNow().full}`;guardarDatos();renderOrden(id);actualizarEtapas()}
-function cambiarEstado(id){const o=getOrden(id),sel=document.querySelector('[data-field="c2-estado"]'),v=sel.value;o.card2.estado=v;sel.style.color=v==='en_proceso'?'#22c55e':v==='parado'?'#ef4444':'#e2e8f0';document.querySelector('[data-section="c2-terminado"]')?.classList.toggle('hidden',v!=='terminado');document.querySelector('[data-section="c2-derivacion"]')?.classList.toggle('hidden',v!=='parado'||o.card2.detenida);document.querySelector('[data-section="c2-destrabe"]')?.classList.toggle('hidden',!o.card2.detenida||v!=='parado');if(v==='parado'&&o.card2.detenida)document.querySelector('[data-section="c2-destrabe"]')?.classList.remove('hidden');guardarDatos();actualizarEtapas()}
-function cambiarCausal(){const v=document.querySelector('[data-field="c2-causal"]')?.value;document.querySelector('[data-section="c2-causal-otro"]')?.classList.toggle('hidden',v!=='Otro motivo')}
-function confirmarDerivacion(id){hideErr('c2-error');const o=getOrden(id),ca=document.querySelector('[data-field="c2-causal"]')?.value||'',co=gf('c2-causal-otro-txt'),pe=document.querySelector('[data-field="c2-persona-designada"]')?.value||'';if(!ca){showErr('c2-error','⚠️ Causal.');return}if(ca==='Otro motivo'&&!co){showErr('c2-error','⚠️ Detalle.');return}if(!pe){showErr('c2-error','⚠️ Responsable.');return}const mf=ca==='Otro motivo'?co:ca,ts=getNow();o.card2.detenida=true;o.card2.detenidaMotivo=mf;o.card2.detenidaResponsable=pe;o.card2.detenidaFecha=ts.full;o.card2.timestamps.push({text:`⏸️ ${mf} — ${pe} — ${ts.full}`,color:'red'});guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+function cambiarEstado(id){const o=getOrden(id),sel=document.querySelector('[data-field="c2-estado"]'),v=sel.value;o.card2.estado=v;sel.style.color=v==='en_proceso'?'#22c55e':v==='parado'?'#ef4444':'#e2e8f0';document.querySelector('[data-section="c2-enproceso"]')?.classList.toggle('hidden',v!=='en_proceso');document.querySelector('[data-section="c2-terminado"]')?.classList.toggle('hidden',v!=='terminado');document.querySelector('[data-section="c2-derivacion"]')?.classList.toggle('hidden',v!=='parado'||o.card2.detenida);document.querySelector('[data-section="c2-destrabe"]')?.classList.toggle('hidden',!o.card2.detenida||v!=='parado');if(v==='parado'&&o.card2.detenida)document.querySelector('[data-section="c2-destrabe"]')?.classList.remove('hidden');guardarDatos();actualizarEtapas()}
+function cambiarCausal(){document.querySelector('[data-section="c2-causal-otro"]')?.classList.toggle('hidden',document.querySelector('[data-field="c2-causal"]')?.value!=='Otro motivo')}
+function confirmarDerivacion(id){hideErr('c2-error');const o=getOrden(id),ca=document.querySelector('[data-field="c2-causal"]')?.value||'',co=gf('c2-causal-otro-txt'),pe=document.querySelector('[data-field="c2-persona-designada"]')?.value||'';if(!ca)return showErr('c2-error','⚠️ Causal.');if(ca==='Otro motivo'&&!co)return showErr('c2-error','⚠️ Detalle.');if(!pe)return showErr('c2-error','⚠️ Responsable.');const mf=ca==='Otro motivo'?co:ca,ts=getNow();o.card2.detenida=true;o.card2.detenidaMotivo=mf;o.card2.detenidaResponsable=pe;o.card2.detenidaFecha=ts.full;o.card2.timestamps.push({text:`⏸️ ${mf} — ${pe} — ${ts.full}`,color:'red'});guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
 function cambiarDestrabe(id){const v=document.querySelector(`input[name="destrabe-${id}"]:checked`)?.value;if(!v)return;document.querySelector('[data-section="c2-destrabe-si"]')?.classList.toggle('hidden',v!=='si');document.querySelector('[data-section="c2-destrabe-no"]')?.classList.toggle('hidden',v!=='no')}
-function guardarEntrega(id){hideErr('c2-error');const o=getOrden(id),ea=document.querySelector('[data-field="c2-entrega-pedido"]')?.value||'';if(!ea){showErr('c2-error','⚠️ Destinatario.');return}o.card2.timestamps.push({text:`▶️ Entregado a ${ea} — ${getNow().full}`,color:'green'});o.card2.detenida=false;o.card2.detenidaMotivo='';o.card2.detenidaResponsable='';o.card2.detenidaFecha='';o.card2.estado='en_proceso';guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
-function guardarRetraso(id){hideErr('c2-error');const o=getOrden(id),fe=document.querySelector('[data-field="c2-destrabe-fecha"]')?.value||'',mo=gf('c2-destrabe-motivo');if(!fe){showErr('c2-error','⚠️ Fecha.');return}if(!mo){showErr('c2-error','⚠️ Motivo.');return}const fp=fe.split('-');o.card2.timestamps.push({text:`📅 ${fp[2]}/${fp[1]}/${fp[0]} — ${mo} — ${getNow().full}`,color:'amber'});guardarDatos();renderOrden(id);actualizarEtapas()}
-function finalizarOperativa(id){hideErr('c2-error');const o=getOrden(id),tr=gf('c2-trabajos');if(!tr){showErr('c2-error','⚠️ Trabajos.');return}const ts=getNow();o.card2.complete=true;o.card2.trabajos=tr;o.card2.detenida=false;o.card2.bannerFacturacion=ts.full;o.card2.finalTimestamp=`Operativa finalizada el ${ts.full}`;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
-
-// ===== CARD 3 =====
+function guardarEntrega(id){hideErr('c2-error');const o=getOrden(id),ea=document.querySelector('[data-field="c2-entrega-pedido"]')?.value||'';if(!ea)return showErr('c2-error','⚠️');o.card2.timestamps.push({text:`▶️ A ${ea} — ${getNow().full}`,color:'green'});o.card2.detenida=false;o.card2.detenidaMotivo='';o.card2.detenidaResponsable='';o.card2.detenidaFecha='';o.card2.estado='en_proceso';guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+function guardarRetraso(id){hideErr('c2-error');const o=getOrden(id),fe=document.querySelector('[data-field="c2-destrabe-fecha"]')?.value||'',mo=gf('c2-destrabe-motivo');if(!fe||!mo)return showErr('c2-error','⚠️ Complete.');const fp=fe.split('-');o.card2.timestamps.push({text:`📅 ${fp[2]}/${fp[1]}/${fp[0]} — ${mo} — ${getNow().full}`,color:'amber'});guardarDatos();renderOrden(id);actualizarEtapas()}
+function finalizarOperativa(id){hideErr('c2-error');const o=getOrden(id),tr=gf('c2-trabajos');if(!tr)return showErr('c2-error','⚠️ Trabajos.');const ts=getNow();o.card2.complete=true;o.card2.trabajos=tr;o.card2.detenida=false;o.card2.bannerFacturacion=ts.full;o.card2.finalTimestamp=`Finalizada ${ts.full}`;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
 function cambiarFactura(id){const o=getOrden(id),v=document.querySelector(`input[name="factura-${id}"]:checked`)?.value;o.card3.facturado=v==='si';document.querySelector('[data-section="c3-si"]')?.classList.toggle('hidden',v!=='si');document.querySelector('[data-section="c3-no"]')?.classList.toggle('hidden',v!=='no');guardarDatos()}
-function guardarNoFactura(id){hideErr('c3-error');const o=getOrden(id),m=gf('c3-motivo-no');if(!m){showErr('c3-error','⚠️ Motivo.');return}o.card3.motivoNoFactura=m;guardarDatos();renderNotificaciones(o);showErr('c3-error',`⛔ Bloqueado: "${m}". Seleccione SÍ.`)}
-function confirmarFactura(id){hideErr('c3-error');const o=getOrden(id);o.card3.complete=true;o.card3.facturado=true;o.card3.timestamp=`Admin completada por ${currentUser?currentUser.nombre:'—'} el ${getNow().full}. Facturado: SÍ`;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
-
-// ===== CARD 4 =====
-function cerrarOrden(id){hideErr('c4-error');const o=getOrden(id),no=gf('c4-nombre'),dn=gf('c4-dni'),co=gc('c4-conformidad'),pe=gf('c4-personal-entrega'),fp=gf('c4-fecha-pactada');if(!no){showErr('c4-error','⚠️ Nombre.');return}if(!dn){showErr('c4-error','⚠️ DNI.');return}if(!pe){showErr('c4-error','⚠️ Personal.');return}if(!fp){showErr('c4-error','⚠️ Fecha.');return}if(!co){showErr('c4-error','⚠️ Conformidad.');return}const ts=getNow();o.card4={complete:true,retiraNombre:no,retiraDni:dn,conformidad:true,personalEntrega:pe,fechaEntregaPactada:fp,timestamp:`Cerrada por ${currentUser?currentUser.nombre:'—'} ${ts.full}. A: ${no} (${dn}). Por: ${pe}. Pactada: ${formatFP(fp)}`};o.finalizada=true;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+function guardarNoFactura(id){hideErr('c3-error');const o=getOrden(id),m=gf('c3-motivo-no');if(!m)return showErr('c3-error','⚠️');o.card3.motivoNoFactura=m;o.card3.noFacturaGuardado=true;guardarDatos();renderNotificaciones(o);renderOrden(id);actualizarEtapas()}
+function confirmarFactura(id){const o=getOrden(id);o.card3.complete=true;o.card3.facturado=true;o.card3.timestamp=`Admin por ${currentUser?currentUser.nombre:'—'} ${getNow().full}. Facturado: SÍ`;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
+function cerrarOrden(id){hideErr('c4-error');const o=getOrden(id),qn=gf('c4-quien-notifico'),no=gf('c4-nombre'),dn=gf('c4-dni'),co=gc('c4-conformidad'),fp=gf('c4-fecha-pactada');if(!qn||!no||!dn||!fp||!co)return showErr('c4-error','⚠️ Complete todo.');const ts=getNow();o.card4={complete:true,quienNotifico:qn,fechaNotificacion:ts.full,retiraNombre:no,retiraDni:dn,conformidad:true,personalEntrega:qn,fechaEntregaPactada:fp,timestamp:`Cerrada por ${currentUser?currentUser.nombre:'—'} ${ts.full}. Notificó: ${qn}. A: ${no} (${dn}). Pactada: ${formatFP(fp)}`};o.finalizada=true;guardarDatos();renderOrden(id);renderTabs();actualizarEtapas()}
 
 // ===== FOOTER =====
-function updateFooter(){const o=getActiveOrden();if(!o){document.getElementById('footer-orden-label').textContent='Sin orden activa';document.getElementById('progress-text').textContent='0%';document.getElementById('progress-bar').style.width='0%';const b=document.getElementById('status-badge');b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-slate-700/50 text-slate-500 border border-slate-600/30';b.textContent='[ SIN ORDEN ]';b.classList.remove('blink-animation');document.getElementById('status-tooltip').classList.add('hidden')}else{const pr=getProgress(o);document.getElementById('footer-orden-label').textContent=`OR-${o.numero} · ${o.card1.cliente||'Nueva'}`;document.getElementById('progress-text').textContent=pr+'%';document.getElementById('progress-bar').style.width=pr+'%';const b=document.getElementById('status-badge'),tt=document.getElementById('status-tooltip');b.classList.remove('blink-animation');if(o.finalizada){b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';b.textContent='[ FINALIZADA ]';tt.classList.add('hidden')}else if(o.card2.detenida){b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-red-500/20 text-red-400 border border-red-500/30 blink-animation';b.textContent='[ DETENIDA ]';tt.classList.remove('hidden');document.getElementById('tooltip-motivo').textContent='⚠️ '+o.card2.detenidaMotivo;document.getElementById('tooltip-responsable').textContent='👤 '+o.card2.detenidaResponsable;document.getElementById('tooltip-fecha').textContent='🕐 '+o.card2.detenidaFecha}else{b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-green-500/20 text-green-400 border border-green-500/30';b.textContent='[ EN PROCESO ]';tt.classList.add('hidden')}}document.getElementById('footer-ordenes-count').textContent=ordenes.length+' orden'+(ordenes.length!==1?'es':'')}
+function updateFooter(){const o=getActiveOrden();if(!o){document.getElementById('footer-orden-label').textContent='Sin orden';document.getElementById('progress-text').textContent='0%';document.getElementById('progress-bar').style.width='0%';const b=document.getElementById('status-badge');b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-slate-700/50 text-slate-500 border border-slate-600/30';b.textContent='[ SIN ORDEN ]';b.classList.remove('blink-animation');document.getElementById('status-tooltip').classList.add('hidden')}else{const pr=getProgress(o);document.getElementById('footer-orden-label').textContent=`OR-${o.numero} · ${o.card1.cliente||'Nueva'}`;document.getElementById('progress-text').textContent=pr+'%';document.getElementById('progress-bar').style.width=pr+'%';const b=document.getElementById('status-badge'),tt=document.getElementById('status-tooltip');b.classList.remove('blink-animation');if(o.finalizada){b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-cyan-500/20 text-cyan-400 border border-cyan-500/30';b.textContent='[ FINALIZADA ]';tt.classList.add('hidden')}else if(hasAnyActiveStop(o)){b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-orange-500/20 text-orange-400 border border-orange-500/30 blink-animation';b.textContent='[ 🛑 STOP ]';tt.classList.remove('hidden');const activeS=o.stops.filter(s=>s.activo);document.getElementById('tooltip-motivo').textContent='🛑 '+activeS.map(s=>s.motivo).join(' | ');document.getElementById('tooltip-responsable').textContent='👤 Detuvo: '+activeS.map(s=>s.quien).join(', ');document.getElementById('tooltip-fecha').textContent='🕐 '+activeS[0].fecha}else if(o.card2.detenida){b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-red-500/20 text-red-400 border border-red-500/30 blink-animation';b.textContent='[ DETENIDA ]';tt.classList.remove('hidden');document.getElementById('tooltip-motivo').textContent='⚠️ '+o.card2.detenidaMotivo;document.getElementById('tooltip-responsable').textContent='👤 '+o.card2.detenidaResponsable;document.getElementById('tooltip-fecha').textContent='🕐 '+o.card2.detenidaFecha}else{b.className='px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider cursor-default bg-green-500/20 text-green-400 border border-green-500/30';b.textContent='[ EN PROCESO ]';tt.classList.add('hidden')}}document.getElementById('footer-ordenes-count').textContent=ordenes.length+' orden'+(ordenes.length!==1?'es':'')}
 
 // ===== EXCEL =====
-function exportarExcel(){if(!ordenes.length){alert('No hay órdenes.');return}const data=ordenes.map(o=>{const pr=getProgress(o),st=getStatusText(o);return{'Orden':'OR-'+o.numero,'Creación':o.createdAt,'Creada por':o.creadaPor||'—','Estado':st,'Progreso':pr+'%','Cliente':o.card1.cliente||'—','Vehículo':o.card1.vehiculo||'—','Patente':o.card1.patente||'—','Problema':o.card1.problema||'—','Ingreso':o.card1.timestamp||'—','Mecánico':o.card2.mecanico||'—','Diagnóstico':o.card2.diagnostico||'—','Trabajos':o.card2.trabajos||'—','Detenida':o.card2.detenida?'SÍ':'NO','Mot.Detención':o.card2.detenidaMotivo||'—','Resp.Detención':o.card2.detenidaResponsable||'—','Historial':o.card2.timestamps.map(t=>t.text).join(' | ')||'—','Facturado':o.card3.facturado===true?'SÍ':o.card3.facturado===false?'NO':'Pend','Retira':o.card4.retiraNombre||'—','DNI':o.card4.retiraDni||'—','Personal Entrega':o.card4.personalEntrega||'—','Fecha Pactada':o.card4.fechaEntregaPactada?formatFP(o.card4.fechaEntregaPactada):'—','Cierre':o.card4.timestamp||'Pend'}});const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Órdenes');const res=[{Ind:'Total',Val:ordenes.length},{Ind:'En Proceso',Val:ordenes.filter(o=>!o.finalizada&&!o.card2.detenida).length},{Ind:'Detenidas',Val:ordenes.filter(o=>o.card2.detenida).length},{Ind:'Finalizadas',Val:ordenes.filter(o=>o.finalizada).length},{Ind:'Generado por',Val:currentUser?currentUser.nombre:'—'},{Ind:'Fecha',Val:getNow().full}];XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(res),'Resumen');XLSX.writeFile(wb,`HE_Informe_${getNow().fecha.replace(/\//g,'-')}.xlsx`)}
+function exportarExcel(){if(!ordenes.length)return alert('Sin órdenes.');
+const data=ordenes.map(o=>{
+    // Build stop summary
+    const stopsActive=(o.stops||[]).filter(s=>s.activo);
+    const stopsResolved=(o.stops||[]).filter(s=>!s.activo);
+    const stopsSummary=(o.stops||[]).map(s=>{
+        let txt=`[T${s.card}-${s.cardNombre}] ${s.activo?'ACTIVO':'RESUELTO'} | Quién: ${s.quien} | Fecha: ${s.fecha} | Motivo: ${s.motivo}`;
+        if(s.sugerido)txt+=` | Sugerido: ${s.sugerido}`;
+        if(!s.activo)txt+=` | Reanudó: ${s.reanudadoPor} el ${s.reanudadoFecha}`;
+        return txt;
+    }).join(' || ')||'—';
+    return{
+        'Orden':'OR-'+o.numero,
+        'Creación':o.createdAt,
+        'Por':o.creadaPor||'—',
+        'Estado':getStatusText(o),
+        '%':getProgress(o)+'%',
+        'Cliente':o.card1.cliente||'—',
+        'Vehículo':o.card1.vehiculo||'—',
+        'Patente':o.card1.patente||'—',
+        'Problema':o.card1.problema||'—',
+        'Mecánico':o.card2.mecanico||'—',
+        'Diagnóstico':o.card2.diagnostico||'—',
+        'Trabajos':o.card2.trabajos||'—',
+        'Detenida':o.card2.detenida?'SÍ':'NO',
+        'Mot.Det':o.card2.detenidaMotivo||'—',
+        'Historial':o.card2.timestamps.map(t=>t.text).join(' | ')||'—',
+        'Facturado':o.card3.facturado===true?'SÍ':o.card3.facturado===false?'NO':'—',
+        'Retira':o.card4.retiraNombre||'—',
+        'DNI':o.card4.retiraDni||'—',
+        'Notificó':o.card4.quienNotifico||'—',
+        'Fec.Notif.':o.card4.fechaNotificacion||'—',
+        'Entrega':o.card4.personalEntrega||'—',
+        'Pactada':o.card4.fechaEntregaPactada?formatFP(o.card4.fechaEntregaPactada):'—',
+        'Cierre':o.card4.timestamp||'—',
+        'Stops Activos':stopsActive.length,
+        'Stops Resueltos':stopsResolved.length,
+        'Detalle Stops':stopsSummary
+    }
+});
+const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),'Órdenes');
+
+// Second sheet: Detailed stops
+const stopsData=[];
+ordenes.forEach(o=>{
+    (o.stops||[]).forEach(s=>{
+        stopsData.push({
+            'Orden':'OR-'+o.numero,
+            'Cliente':o.card1.cliente||'—',
+            'Tarjeta':s.card+' - '+s.cardNombre,
+            'Estado Stop':s.activo?'🛑 ACTIVO':'✅ RESUELTO',
+            'Quién Detuvo':s.quien,
+            'Fecha Stop':s.fecha,
+            'Motivo':s.motivo,
+            'Sugerido':s.sugerido||'—',
+            'Reanudado Por':s.reanudadoPor||'—',
+            'Fecha Reanudación':s.reanudadoFecha||'—'
+        });
+    });
+});
+if(stopsData.length){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(stopsData),'Stops');
+}
+
+XLSX.writeFile(wb,`HE_${getNow().fecha.replace(/\//g,'-')}.xlsx`)}
+
+// ===== PDF INFORME GERENTE =====
+function generarPDF(){
+    if (!ordenes || ordenes.length === 0) return alert('No hay órdenes registradas.');
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape');
+    const now = getNow();
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    // ===== HEADER =====
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, pageW, 32, 'F');
+    doc.setTextColor(99, 102, 241);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('HIDRAULICA ENSENADA', 15, 16);
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('INFORME GERENCIAL RESUMIDO', 15, 23);
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(8);
+    doc.text('Emitido: ' + now.full, 15, 28);
+
+    // ===== RESUMEN RÁPIDO =====
+    const stats = {
+        total: ordenes.length,
+        finalizadas: ordenes.filter(o => o.finalizada).length,
+        proceso: ordenes.filter(o => !o.finalizada && !o.card2.detenida && !hasAnyActiveStop(o)).length,
+        detenidas: ordenes.filter(o => o.card2.detenida && !hasAnyActiveStop(o)).length,
+        conStop: ordenes.filter(o => hasAnyActiveStop(o)).length
+    };
+
+    let sy = 38;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    
+    const boxW = 45, boxH = 10, gap = 4;
+    const boxes = [
+        {label:'TOTAL', val:stats.total, bg:[30,41,59], tc:[255,255,255]},
+        {label:'EN PROCESO', val:stats.proceso, bg:[34,197,94], tc:[255,255,255]},
+        {label:'DETENIDAS', val:stats.detenidas, bg:[239,68,68], tc:[255,255,255]},
+        {label:'CON STOP', val:stats.conStop, bg:[249,115,22], tc:[255,255,255]},
+        {label:'FINALIZADAS', val:stats.finalizadas, bg:[6,182,212], tc:[255,255,255]}
+    ];
+    const totalBoxW = boxes.length * boxW + (boxes.length-1) * gap;
+    let bx = (pageW - totalBoxW) / 2;
+    boxes.forEach(b=>{
+        doc.setFillColor(...b.bg);
+        doc.roundedRect(bx, sy, boxW, boxH, 2, 2, 'F');
+        doc.setTextColor(...b.tc);
+        doc.setFontSize(12);
+        doc.text(String(b.val), bx + boxW/2, sy + 5.5, {align:'center'});
+        doc.setFontSize(5.5);
+        doc.text(b.label, bx + boxW/2, sy + 9, {align:'center'});
+        bx += boxW + gap;
+    });
+
+    // ===== TABLA PRINCIPAL =====
+    const bodyData = ordenes.map(o => {
+        let estadoActual = '';
+        if(o.finalizada) estadoActual = 'FINALIZADA';
+        else if(hasAnyActiveStop(o)) estadoActual = 'STOP ACTIVO';
+        else if(o.card2.detenida) estadoActual = 'DETENIDA';
+        else if(o.card2.complete) estadoActual = 'EN ADMINISTRACION';
+        else if(o.card2.diagnosticoGuardado) estadoActual = o.card2.estado === 'en_proceso' ? 'MECANICO TRABAJANDO' : o.card2.estado === 'terminado' ? 'REPARACION TERMINADA' : 'PARADO/DERIVADO';
+        else if(o.card1.complete) estadoActual = 'INGRESADO - ESPERA MECANICO';
+        else estadoActual = 'SIN INGRESAR';
+
+        let etapaActual = '';
+        if(o.finalizada) etapaActual = '4-Entregado';
+        else if(o.card4.complete) etapaActual = '4-Entregado';
+        else if(o.card3.complete) etapaActual = '4-Entrega';
+        else if(o.card2.complete) etapaActual = '3-Administracion';
+        else if(o.card1.complete) etapaActual = '2-Operativa';
+        else etapaActual = '1-Ingreso';
+
+        let situacion = '';
+        if(o.finalizada) situacion = 'Orden cerrada y entregada';
+        else if(hasAnyActiveStop(o)){
+            const activeStops = o.stops.filter(s=>s.activo);
+            situacion = activeStops.map(s => {
+                let txt = 'STOP: ' + s.motivo;
+                txt += ' | Detuvo: ' + s.quien.split(' - ')[0];
+                if(s.sugerido) txt += ' | Contactar: ' + s.sugerido.split(' - ')[0];
+                txt += ' | Tarjeta ' + s.card + '-' + s.cardNombre;
+                return txt;
+            }).join(' // ');
+        } else if(o.card2.detenida) situacion = 'Derivacion: ' + o.card2.detenidaMotivo + ' | Responsable: ' + (o.card2.detenidaResponsable ? o.card2.detenidaResponsable.split(' - ')[0] : '—');
+        else if(o.card3.complete && !o.card4.complete) situacion = 'Listo para entregar - Pendiente notificar cliente';
+        else if(o.card2.complete && !o.card3.complete) situacion = o.card3.noFacturaGuardado ? 'NO FACTURADO: ' + (o.card3.motivoNoFactura||'sin motivo') + ' | Requiere Gerencia' : 'Reparacion terminada - Pendiente facturacion en Administracion';
+        else if(o.card1.complete && !o.card2.complete){
+            if(o.card2.diagnosticoGuardado){
+                if(o.card2.estado === 'en_proceso') situacion = 'Mecanico trabajando: ' + (o.card2.mecanico ? o.card2.mecanico.split(' - ')[0] : '—');
+                else if(o.card2.estado === 'parado') situacion = 'Parado - Requiere derivacion';
+                else situacion = 'Terminado - Pendiente cerrar operativa';
+            } else situacion = 'Ingresado - Esperando asignacion de mecanico';
+        } else situacion = 'Sin ingresar al sistema';
+
+        return [
+            'OR-' + o.numero,
+            o.card1.cliente || 'S/D',
+            o.card1.vehiculo || 'S/D',
+            o.createdAt ? o.createdAt.split(' a las')[0] : '—',
+            o.card2.mecanico ? o.card2.mecanico.split(' - ')[0] : '—',
+            (o.card2.diagnostico || '—').substring(0, 50) + (o.card2.diagnostico && o.card2.diagnostico.length > 50 ? '...' : ''),
+            estadoActual,
+            etapaActual,
+            situacion.substring(0, 80) + (situacion.length > 80 ? '...' : '')
+        ];
+    });
+
+    doc.autoTable({
+        startY: sy + boxH + 6,
+        head: [['ORDEN', 'EMPRESA / CLIENTE', 'MAQUINARIA / VEHICULO', 'FECHA INGRESO', 'MECANICO A CARGO', 'DIAGNOSTICO', 'ESTADO ACTUAL', 'ETAPA', 'SITUACION ACTUAL (qué permite o detiene la tarea)']],
+        body: bodyData,
+        headStyles: { fillColor: [15, 23, 42], fontSize: 6.5, fontStyle: 'bold', cellPadding: 3, textColor: [200, 200, 220], lineWidth: 0.1, lineColor: [50, 60, 80] },
+        styles: { fontSize: 6.5, cellPadding: 2.5, lineWidth: 0.1, lineColor: [220, 220, 220], overflow: 'linebreak' },
+        columnStyles: { 0:{cellWidth:16,fontStyle:'bold'}, 1:{cellWidth:28}, 2:{cellWidth:28}, 3:{cellWidth:20}, 4:{cellWidth:22}, 5:{cellWidth:38}, 6:{cellWidth:26,fontStyle:'bold'}, 7:{cellWidth:22}, 8:{cellWidth:'auto'} },
+        alternateRowStyles: {fillColor: [245,247,250]},
+        didParseCell: function(data) {
+            if (data.column.index === 6 && data.section === 'body') {
+                const raw = data.cell.raw;
+                if (raw === 'FINALIZADA') {data.cell.styles.textColor = [6, 182, 212]; data.cell.styles.fontStyle='bold'}
+                else if (raw === 'STOP ACTIVO') {data.cell.styles.textColor = [249, 115, 22]; data.cell.styles.fontStyle='bold'; data.cell.styles.fillColor=[255,243,224]}
+                else if (raw === 'DETENIDA') {data.cell.styles.textColor = [220, 38, 38]; data.cell.styles.fontStyle='bold'; data.cell.styles.fillColor=[254,226,226]}
+                else if (raw.includes('MECANICO TRABAJANDO')) {data.cell.styles.textColor = [34, 197, 94]}
+                else if (raw === 'EN ADMINISTRACION') {data.cell.styles.textColor = [99, 102, 241]}
+                else {data.cell.styles.textColor = [100, 116, 139]}
+            }
+            if (data.column.index === 8 && data.section === 'body') {
+                const raw = data.cell.raw;
+                if (raw.includes('STOP:') || raw.includes('NO FACTURADO')) { data.cell.styles.textColor = [220, 38, 38]; data.cell.styles.fontStyle = 'bold'; }
+                if (raw.includes('Derivacion:')) { data.cell.styles.textColor = [245, 158, 11]; data.cell.styles.fontStyle = 'bold'; }
+            }
+        },
+        margin: {left: 10, right: 10}
+    });
+
+    // ===== STOPS ACTIVOS =====
+    const allActiveStops = [];
+    ordenes.forEach(o=>{
+        (o.stops||[]).filter(s=>s.activo).forEach(s=>{
+            allActiveStops.push({ orden:'OR-'+o.numero, cliente:o.card1.cliente||'S/D', tarjeta:s.card+'-'+s.cardNombre, quien:s.quien.split(' - ')[0], fecha:s.fecha, motivo:s.motivo, sugerido:s.sugerido?s.sugerido.split(' - ')[0]:'—' });
+        });
+    });
+    if(allActiveStops.length > 0){
+        let yPos = doc.lastAutoTable.finalY + 8;
+        if(yPos > pageH - 40){doc.addPage('landscape');yPos=15;}
+        doc.setFillColor(220, 38, 38);
+        doc.roundedRect(10, yPos, pageW - 20, 8, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('STOPS ACTIVOS — Tareas detenidas que requieren atención', pageW/2, yPos + 5.5, {align:'center'});
+        doc.autoTable({
+            startY: yPos + 11,
+            head: [['ORDEN', 'CLIENTE', 'TARJETA', 'DETUVO', 'FECHA STOP', 'MOTIVO', 'CONTACTAR A']],
+            body: allActiveStops.map(s => [s.orden, s.cliente, s.tarjeta, s.quien, s.fecha, s.motivo.substring(0,60)+(s.motivo.length>60?'...':''), s.sugerido]),
+            headStyles: { fillColor: [180, 28, 28], fontSize: 6.5, fontStyle:'bold', textColor:[255,255,255] },
+            styles: { fontSize: 6.5, cellPadding: 2.5 },
+            alternateRowStyles: {fillColor: [255,245,245]},
+            margin: {left: 10, right: 10}
+        });
+    }
+
+    // ===== DETENIDAS POR DERIVACIÓN =====
+    const detenidas = ordenes.filter(o => o.card2.detenida && !hasAnyActiveStop(o) && !o.finalizada);
+    if(detenidas.length > 0){
+        let yPos = doc.lastAutoTable.finalY + 8;
+        if(yPos > pageH - 40){doc.addPage('landscape');yPos=15;}
+        doc.setFillColor(245, 158, 11);
+        doc.roundedRect(10, yPos, pageW - 20, 8, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ORDENES DETENIDAS POR DERIVACION — Sector/persona donde se detuvo', pageW/2, yPos + 5.5, {align:'center'});
+        doc.autoTable({
+            startY: yPos + 11,
+            head: [['ORDEN', 'CLIENTE', 'VEHICULO', 'MECANICO', 'MOTIVO DETENCION', 'PERSONA RESPONSABLE', 'SECTOR', 'FECHA']],
+            body: detenidas.map(o => ['OR-'+o.numero, o.card1.cliente||'S/D', o.card1.vehiculo||'S/D', o.card2.mecanico?o.card2.mecanico.split(' - ')[0]:'—', o.card2.detenidaMotivo||'—', o.card2.detenidaResponsable?o.card2.detenidaResponsable.split(' - ')[0]:'—', o.card2.detenidaResponsable?(o.card2.detenidaResponsable.split(' - ')[1]||'—'):'—', o.card2.detenidaFecha||'—']),
+            headStyles: { fillColor: [180, 120, 8], fontSize: 6.5, fontStyle:'bold', textColor:[255,255,255] },
+            styles: { fontSize: 6.5, cellPadding: 2.5 },
+            alternateRowStyles: {fillColor: [255,251,235]},
+            margin: {left: 10, right: 10}
+        });
+    }
+
+    // ===== FOOTER =====
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i=1;i<=pageCount;i++){
+        doc.setPage(i);
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text('Hidraulica Ensenada — Informe Gerencial Resumido — '+now.full+' — Pag '+i+'/'+pageCount, pageW/2, pageH - 5, {align:'center'});
+    }
+    doc.save('Informe_Gerente_'+now.fecha.replace(/\//g,'-')+'.pdf');
+}
+
+// ===== INIT =====
+updateFooter();
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a004dc13781a1e74',t:'MTc3OTU0NzY4Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
